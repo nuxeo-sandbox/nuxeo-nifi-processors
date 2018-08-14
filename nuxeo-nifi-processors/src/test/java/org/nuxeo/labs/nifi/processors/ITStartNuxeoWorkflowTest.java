@@ -31,8 +31,6 @@ public class ITStartNuxeoWorkflowTest extends BaseTest {
 
     @Before
     public void init() throws Exception {
-        initDocuments();
-
         testRunner = TestRunners.newTestRunner(StartNuxeoWorkflow.class);
 
         Map<String, String> props = new HashMap<>();

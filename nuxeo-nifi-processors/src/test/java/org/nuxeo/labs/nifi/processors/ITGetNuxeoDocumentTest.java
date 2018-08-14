@@ -19,7 +19,6 @@ package org.nuxeo.labs.nifi.processors;
 import java.util.HashMap;
 import java.util.Map;
 
-import org.apache.nifi.util.MockFlowFile;
 import org.apache.nifi.util.TestRunner;
 import org.apache.nifi.util.TestRunners;
 import org.junit.Before;
@@ -32,8 +31,6 @@ public class ITGetNuxeoDocumentTest extends BaseTest {
 
     @Before
     public void init() throws Exception {
-        initDocuments();
-
         testRunner = TestRunners.newTestRunner(GetNuxeoDocument.class);
 
         Map<String, String> props = new HashMap<>();

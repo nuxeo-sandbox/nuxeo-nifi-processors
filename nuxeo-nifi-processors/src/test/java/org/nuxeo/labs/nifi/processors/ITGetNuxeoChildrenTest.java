@@ -31,9 +31,7 @@ public class ITGetNuxeoChildrenTest extends BaseTest {
     private TestRunner testRunner;
 
     @Before
-    public void init() throws Exception {
-        initDocuments();
-        
+    public void init() throws Exception {        
         testRunner = TestRunners.newTestRunner(GetNuxeoChildren.class);
 
         Map<String, String> props = new HashMap<>();
