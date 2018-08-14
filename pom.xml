@@ -57,7 +57,6 @@
         <version>${nifiVersion}</version>
         <scope>test</scope>
       </dependency>
-
     </dependencies>
   </dependencyManagement>
 
@@ -84,6 +83,17 @@
       </snapshots>
     </repository>
   </repositories>
+
+  <distributionManagement>
+    <repository>
+      <id>apache.releases.https</id>
+      <url>http://maven.nuxeo.org/nexus/content/groups/public</url>
+    </repository>
+    <snapshotRepository>
+      <id>apache.snapshots.https</id>
+      <url>http://maven.nuxeo.org/nexus/content/groups/public-snapshot</url>
+    </snapshotRepository>
+  </distributionManagement>
 
   <pluginRepositories>
     <pluginRepository>
