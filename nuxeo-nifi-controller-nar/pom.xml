@@ -1,0 +1,28 @@
+<?xml version="1.0"?>
+<project
+	xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd"
+	xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
+	<modelVersion>4.0.0</modelVersion>
+	<parent>
+		<groupId>org.nuxeo.labs.nifi</groupId>
+		<artifactId>nuxeo-nifi-processors-parent</artifactId>
+		<version>10.2-SNAPSHOT</version>
+	</parent>
+  
+	<artifactId>nuxeo-nifi-controller-nar</artifactId>
+	<packaging>nar</packaging>
+	<name>nuxeo-nifi-controller-nar</name>
+  
+	<properties>
+		<maven.javadoc.skip>true</maven.javadoc.skip>
+		<source.skip>true</source.skip>
+	</properties>
+
+	<dependencies>
+		<dependency>
+			<groupId>org.nuxeo.labs.nifi</groupId>
+			<artifactId>nuxeo-nifi-controller-api</artifactId>
+			<version>${project.version}</version>
+		</dependency>
+	</dependencies>
+</project>
