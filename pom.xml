@@ -27,11 +27,11 @@
   </properties>
 
   <modules>
-    <module>nuxeo-nifi-controller-api</module>
-    <module>nuxeo-nifi-controller</module>
-    <module>nuxeo-nifi-controller-nar</module>
-    <module>nuxeo-nifi-processors</module>
-    <module>nuxeo-nifi-nar</module>
+    <module>nuxeo-nifi-api</module>
+    <module>nuxeo-nifi-services</module>
+    <module>nuxeo-nifi-itests</module>
+    <module>nuxeo-nifi-api-nar</module>
+    <module>nuxeo-nifi-services-nar</module>
   </modules>
 
   <dependencyManagement>
@@ -78,22 +78,11 @@
         <enabled>false</enabled>
       </releases>
       <snapshots>
-        <updatePolicy>always</updatePolicy>
+        <updatePolicy>daily</updatePolicy>
         <enabled>true</enabled>
       </snapshots>
     </repository>
   </repositories>
-
-  <distributionManagement>
-    <repository>
-      <id>apache.releases.https</id>
-      <url>http://maven.nuxeo.org/nexus/content/groups/public</url>
-    </repository>
-    <snapshotRepository>
-      <id>apache.snapshots.https</id>
-      <url>http://maven.nuxeo.org/nexus/content/groups/public-snapshot</url>
-    </snapshotRepository>
-  </distributionManagement>
 
   <pluginRepositories>
     <pluginRepository>
@@ -115,10 +104,23 @@
         <enabled>false</enabled>
       </releases>
       <snapshots>
-        <updatePolicy>always</updatePolicy>
+        <updatePolicy>daily</updatePolicy>
         <enabled>true</enabled>
       </snapshots>
     </pluginRepository>
   </pluginRepositories>
+  
+  <!-- 
+    <distributionManagement>
+    <repository>
+      <id>apache.releases.https</id>
+      <url>http://maven.nuxeo.org/nexus/content/groups/public</url>
+    </repository>
+    <snapshotRepository>
+      <id>apache.snapshots.https</id>
+      <url>http://maven.nuxeo.org/nexus/content/groups/public-snapshot</url>
+    </snapshotRepository>
+  </distributionManagement>
+   -->
 
 </project>
