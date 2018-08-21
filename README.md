@@ -12,11 +12,11 @@ Build with Maven:
 mvn install
 ```
 
-> Test suite requires port 8080 to be free
+> Integration test suite requires port 8080 to be free
 
 ## Install
 
-Copy the generated NAR from `nuxeo-nifi-nar/target` to the Apache NiFi installation directory.
+Copy the generated NARs from `nuxeo-nifi-api-nar/target` and `nuxeo-nifi-services-nar` to the Apache NiFi installation `lib` directory.
 
 ## Support
 
