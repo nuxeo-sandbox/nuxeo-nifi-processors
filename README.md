@@ -16,7 +16,7 @@ mvn install
 
 ## Install
 
-Copy the generated NARs from `nuxeo-nifi-api-nar/target` and `nuxeo-nifi-services-nar` to the Apache NiFi installation `lib` directory.
+Copy the generated NARs from `nuxeo-nifi-api-nar/target` and `nuxeo-nifi-services-nar/target` to the Apache NiFi installation `lib` directory.
 
 ## Support
 

@@ -19,14 +19,12 @@ package org.nuxeo.labs.nifi.processors;
 import java.util.HashMap;
 import java.util.Map;
 
-import org.apache.nifi.util.MockFlowFile;
 import org.apache.nifi.util.TestRunner;
 import org.apache.nifi.util.TestRunners;
 import org.junit.Before;
 import org.junit.Test;
-import org.nuxeo.labs.nifi.services.NuxeoClientServiceImpl;
 
-public class ITGetNuxeoQueryTest extends BaseTest {
+public class ITExecuteNuxeoQueryTest extends BaseTest {
 
     private TestRunner testRunner;
 
@@ -34,39 +32,27 @@ public class ITGetNuxeoQueryTest extends BaseTest {
     public void init() throws Exception {
         initDocuments();
         
-        testRunner = TestRunners.newTestRunner(GetNuxeoQuery.class);
+        testRunner = TestRunners.newTestRunner(ExecuteNuxeoQuery.class);
+        addController(testRunner);
 
-        Map<String, String> props = new HashMap<>();
-        props.put("SERVER_URL", REST_API_URL);
-        props.put("USERNAME", "Administrator");
-        props.put("CREDENTIALS", "Administrator");
-
-        NuxeoClientServiceImpl controller = new NuxeoClientServiceImpl();
-        testRunner.addControllerService("localhost", controller, props);
-        testRunner.enableControllerService(controller);
-        testRunner.assertValid(controller);
-
-        testRunner.setProperty(GetNuxeoQuery.NUXEO_CLIENT_SERVICE, "localhost");
+        testRunner.setProperty(ExecuteNuxeoQuery.NUXEO_CLIENT_SERVICE, "localhost");
     }
 
     @Test
     public void testProcessor() {
         Map<String, String> attributes = new HashMap<>();
         attributes.put("nx-query", "SELECT * from Document");
-        attributes.put("nx-page-size", "15");
-        attributes.put("nx-page-index", "1");
-        attributes.put("nx-max-results", "1");
+        attributes.put("nx-page-size", "5");
+        attributes.put("nx-page-index", "0");
+        attributes.put("nx-max-results", "1000");
         attributes.put("nx-sort-by", "dc:title");
         attributes.put("nx-sort-order", "desc");
 
         testRunner.enqueue("", attributes);
         testRunner.run(1);
-        testRunner.assertTransferCount(GetNuxeoQuery.REL_ORIGINAL, 1);
-        testRunner.assertTransferCount(GetNuxeoQuery.REL_SUCCESS, 15);
-
-        for (MockFlowFile mff : testRunner.getFlowFilesForRelationship(GetNuxeoQuery.REL_SUCCESS)) {
-            System.out.println(new String(mff.toByteArray()));
-        }
+        testRunner.assertTransferCount(ExecuteNuxeoQuery.REL_NEXT_PAGE, 1);
+        testRunner.assertTransferCount(ExecuteNuxeoQuery.REL_ORIGINAL, 1);
+        testRunner.assertTransferCount(ExecuteNuxeoQuery.REL_SUCCESS, 5);
     }
 
 }

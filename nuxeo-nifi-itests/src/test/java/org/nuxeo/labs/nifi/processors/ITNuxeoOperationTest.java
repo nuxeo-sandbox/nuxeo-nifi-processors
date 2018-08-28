@@ -19,48 +19,42 @@ package org.nuxeo.labs.nifi.processors;
 import java.util.HashMap;
 import java.util.Map;
 
-import org.apache.nifi.flowfile.FlowFile;
-import org.apache.nifi.util.FlowFileValidator;
 import org.apache.nifi.util.TestRunner;
 import org.apache.nifi.util.TestRunners;
-import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
 
-public class ITGetNuxeoBlobTest extends BaseTest {
+public class ITNuxeoOperationTest extends BaseTest {
 
     private TestRunner testRunner;
 
     @Before
     public void init() throws Exception {
-        initDocuments();
+        try {
+            initDocuments();
+        } catch (Exception ex) {
+            ex.printStackTrace();
+            throw ex;
+        }
 
-        testRunner = TestRunners.newTestRunner(GetNuxeoBlob.class);
+        testRunner = TestRunners.newTestRunner(NuxeoOperation.class);
         addController(testRunner);
 
-        testRunner.setProperty(GetNuxeoBlob.TARGET_PATH, "${nx-path}");
-        testRunner.setProperty(GetNuxeoBlob.NUXEO_CLIENT_SERVICE, "localhost");
+        testRunner.setProperty(NuxeoOperation.OPERATION_ID, "User.GetCollections");
+        testRunner.setProperty(NuxeoOperation.NUXEO_CLIENT_SERVICE, "localhost");
+        testRunner.setProperty("searchTerm", "");
     }
 
     @Test
     public void testProcessor() {
         Map<String, String> attributes = new HashMap<>();
-        attributes.put("nx-path", FOLDER_2_FILE);
+        attributes.put("nx-op", "User.GetCollections");
 
         testRunner.enqueue("", attributes);
         testRunner.run(1);
-
-        testRunner.assertTransferCount(GetNuxeoBlob.REL_FAILURE, 0);
-        testRunner.assertTransferCount(GetNuxeoBlob.REL_SUCCESS, 1);
-        testRunner.assertTransferCount(GetNuxeoBlob.REL_ORIGINAL, 1);
-
-        testRunner.assertAllFlowFiles(GetNuxeoBlob.REL_SUCCESS, new FlowFileValidator() {
-
-            @Override
-            public void assertFlowFile(FlowFile f) {
-                Assert.assertEquals("Unexpected blob size", 1012L, f.getSize());
-            }
-        });
+        testRunner.assertTransferCount(NuxeoOperation.REL_ORIGINAL, 1);
+        testRunner.assertTransferCount(NuxeoOperation.REL_SUCCESS, 1);
+        testRunner.assertTransferCount(NuxeoOperation.REL_FAILURE, 0);
     }
 
 }

@@ -23,7 +23,6 @@ import org.apache.nifi.util.TestRunner;
 import org.apache.nifi.util.TestRunners;
 import org.junit.Before;
 import org.junit.Test;
-import org.nuxeo.labs.nifi.services.NuxeoClientServiceImpl;
 
 public class ITStartNuxeoWorkflowTest extends BaseTest {
 
@@ -32,16 +31,7 @@ public class ITStartNuxeoWorkflowTest extends BaseTest {
     @Before
     public void init() throws Exception {
         testRunner = TestRunners.newTestRunner(StartNuxeoWorkflow.class);
-
-        Map<String, String> props = new HashMap<>();
-        props.put("SERVER_URL", REST_API_URL);
-        props.put("USERNAME", "Administrator");
-        props.put("CREDENTIALS", "Administrator");
-
-        NuxeoClientServiceImpl controller = new NuxeoClientServiceImpl();
-        testRunner.addControllerService("localhost", controller, props);
-        testRunner.enableControllerService(controller);
-        testRunner.assertValid(controller);
+        addController(testRunner);
 
         testRunner.setProperty(StartNuxeoWorkflow.TARGET_PATH, "${nxpath}");
         testRunner.setProperty(StartNuxeoWorkflow.WORKFLOW, "SerialDocumentReview");

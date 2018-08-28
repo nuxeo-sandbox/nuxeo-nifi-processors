@@ -4,12 +4,17 @@ import static org.nuxeo.client.Operations.BLOB_ATTACH_ON_DOCUMENT;
 import static org.nuxeo.client.Operations.ES_WAIT_FOR_INDEXING;
 
 import java.io.File;
+import java.util.HashMap;
+import java.util.Map;
 
+import org.apache.nifi.reporting.InitializationException;
+import org.apache.nifi.util.TestRunner;
 import org.nuxeo.client.NuxeoClient;
 import org.nuxeo.client.objects.Document;
 import org.nuxeo.client.objects.blob.FileBlob;
 import org.nuxeo.client.spi.auth.BasicAuthInterceptor;
 import org.nuxeo.common.utils.FileUtils;
+import org.nuxeo.labs.nifi.services.NuxeoClientServiceImpl;
 
 import okhttp3.Interceptor;
 
@@ -29,6 +34,19 @@ public abstract class BaseTest {
 
     public BaseTest() {
         super();
+    }
+
+    public static void addController(final TestRunner testRunner) throws InitializationException {
+        Map<String, String> props = new HashMap<>();
+        props.put("SERVER_URL", REST_API_URL);
+        props.put("AUTH_TYPE", "Basic");
+        props.put("USERNAME", "Administrator");
+        props.put("CREDENTIALS", "Administrator");
+
+        NuxeoClientServiceImpl controller = new NuxeoClientServiceImpl();
+        testRunner.addControllerService("localhost", controller, props);
+        testRunner.enableControllerService(controller);
+        testRunner.assertValid(controller);
     }
 
     /**
@@ -67,7 +85,7 @@ public abstract class BaseTest {
             nuxeoClient.repository().createDocumentByPath("/", doc);
         }
 
-        for (int i = 0; i < 1; i++) {
+        for (int i = 0; i < 3; i++) {
             Document doc = Document.createWithName("note_" + i, "Note");
             doc.setPropertyValue("dc:title", "Note " + i);
             doc.setPropertyValue("note:note", "Note " + i);
@@ -85,6 +103,10 @@ public abstract class BaseTest {
                    .voidOperation(true)
                    .param("document", FOLDER_2_FILE)
                    .input(fileBlob)
+                   .execute();
+        nuxeoClient.operation("Document.AddToFavorites")
+                   // .voidOperation(true)
+                   .input(FOLDER_2_FILE)
                    .execute();
         // page providers can leverage Elasticsearch so wait for indexing before starting tests
         nuxeoClient.operation(ES_WAIT_FOR_INDEXING).param("refresh", true).param("waitForAudit", true).execute();

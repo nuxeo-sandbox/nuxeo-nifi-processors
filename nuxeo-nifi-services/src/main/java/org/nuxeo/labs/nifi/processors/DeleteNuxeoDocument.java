@@ -16,12 +16,15 @@
  */
 package org.nuxeo.labs.nifi.processors;
 
+import java.io.IOException;
+import java.io.OutputStream;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 
+import org.apache.commons.io.IOUtils;
 import org.apache.nifi.annotation.behavior.ReadsAttribute;
 import org.apache.nifi.annotation.behavior.ReadsAttributes;
 import org.apache.nifi.annotation.behavior.WritesAttribute;
@@ -36,6 +39,7 @@ import org.apache.nifi.processor.ProcessSession;
 import org.apache.nifi.processor.ProcessorInitializationContext;
 import org.apache.nifi.processor.Relationship;
 import org.apache.nifi.processor.exception.ProcessException;
+import org.apache.nifi.processor.util.StandardValidators;
 import org.nuxeo.client.objects.Document;
 import org.nuxeo.client.objects.Repository;
 import org.nuxeo.client.spi.NuxeoClientException;
@@ -44,65 +48,77 @@ import org.nuxeo.client.spi.NuxeoClientException;
 @CapabilityDescription("Remvoe a document from Nuxeo.")
 @SeeAlso({ GetNuxeoDocument.class, GetNuxeoBlob.class })
 @ReadsAttributes({
-		@ReadsAttribute(attribute = "nx-docid", description = "Document ID to use if the path isn't specified"),
-		@ReadsAttribute(attribute = "nx-path", description = "Path to use, nx-docid overrides") })
-@WritesAttributes({ @WritesAttribute(attribute = "nx-docid", description = "Added for each document deleted"),
-		@WritesAttribute(attribute = "nx-error", description = "Error set if problem occurs") })
+        @ReadsAttribute(attribute = NuxeoAttributes.DOC_ID, description = "Document ID to use if the path isn't specified"),
+        @ReadsAttribute(attribute = NuxeoAttributes.PATH, description = "Path to use, nx-docid overrides") })
+@WritesAttributes({
+        @WritesAttribute(attribute = NuxeoAttributes.DOC_ID, description = "Added for each document deleted"),
+        @WritesAttribute(attribute = NuxeoAttributes.ERROR, description = "Error set if problem occurs") })
 public class DeleteNuxeoDocument extends AbstractNuxeoProcessor {
 
-	private List<PropertyDescriptor> descriptors;
+    public static final PropertyDescriptor TRASH_DOCUMENT = new PropertyDescriptor.Builder().name("TRASH_DOCUMENT")
+                                                                                            .displayName(
+                                                                                                    "Trash Document")
+                                                                                            .description(
+                                                                                                    "Move document to the trash.  If 'No', permanently removes document")
+                                                                                            .allowableValues(YES, NO)
+                                                                                            .defaultValue("false")
+                                                                                            .required(true)
+                                                                                            .addValidator(
+                                                                                                    StandardValidators.BOOLEAN_VALIDATOR)
+                                                                                            .build();
 
-	private Set<Relationship> relationships;
+    @Override
+    protected void init(final ProcessorInitializationContext context) {
+        final List<PropertyDescriptor> descriptors = new ArrayList<PropertyDescriptor>();
+        descriptors.add(NUXEO_CLIENT_SERVICE);
+        descriptors.add(TARGET_REPO);
+        descriptors.add(TARGET_PATH);
+        descriptors.add(TRASH_DOCUMENT);
+        this.descriptors = Collections.unmodifiableList(descriptors);
 
-	@Override
-	protected void init(final ProcessorInitializationContext context) {
-		final List<PropertyDescriptor> descriptors = new ArrayList<PropertyDescriptor>();
-		descriptors.add(NUXEO_CLIENT_SERVICE);
-		descriptors.add(TARGET_REPO);
-		descriptors.add(TARGET_PATH);
-		this.descriptors = Collections.unmodifiableList(descriptors);
+        final Set<Relationship> relationships = new HashSet<Relationship>();
+        relationships.add(REL_SUCCESS);
+        relationships.add(REL_FAILURE);
+        this.relationships = Collections.unmodifiableSet(relationships);
+    }
 
-		final Set<Relationship> relationships = new HashSet<Relationship>();
-		relationships.add(REL_SUCCESS);
-		relationships.add(REL_FAILURE);
-		this.relationships = Collections.unmodifiableSet(relationships);
-	}
+    @Override
+    public void onTrigger(final ProcessContext context, final ProcessSession session) throws ProcessException {
+        FlowFile flowFile = session.get();
+        if (flowFile == null) {
+            return;
+        }
 
-	@Override
-	public Set<Relationship> getRelationships() {
-		return this.relationships;
-	}
+        boolean useTrash = context.getProperty(TRASH_DOCUMENT).asBoolean();
 
-	@Override
-	public final List<PropertyDescriptor> getSupportedPropertyDescriptors() {
-		return descriptors;
-	}
+        try {
+            // Invoke document operation
+            Document doc = getDocument(context, flowFile);
+            Repository rep = getRepository(context);
+            session.putAttribute(flowFile, DOC_ID, doc.getId());
 
-	@Override
-	public void onTrigger(final ProcessContext context, final ProcessSession session) throws ProcessException {
-		FlowFile flowFile = session.get();
-		if (flowFile == null) {
-			return;
-		}
+            if (useTrash) {
+                doc = doc.trash();
 
-		try {
-			// Invoke document operation
-			Document doc = getDocument(context, flowFile);
-			Repository rep = getRepository(context);
-			session.putAttribute(flowFile, "nx-docid", doc.getId());
+                // Convert and write to JSON
+                String json = this.nuxeoClient.getConverterFactory().writeJSON(doc);
+                try (OutputStream out = session.write(flowFile)) {
+                    IOUtils.write(json, out, UTF8);
+                } catch (IOException e) {
+                    session.putAttribute(flowFile, ERROR, e.getMessage());
+                    session.transfer(flowFile, REL_FAILURE);
+                    return;
+                }
+                session.putAttribute(flowFile, "nx-trashed", "true");
+            } else {
+                // Remove document
+                rep.deleteDocument(doc);
+            }
 
-			// Remove document
-			try {
-				rep.deleteDocument(doc);
-			} catch (Exception e) {
-				session.putAttribute(flowFile, "nx-error", e.getMessage());
-				session.transfer(flowFile, REL_FAILURE);
-				return;
-			}
-			session.transfer(flowFile, REL_SUCCESS);
-		} catch (NuxeoClientException nce) {
-			session.putAttribute(flowFile, "nx-error", nce.getMessage());
-			session.transfer(flowFile, REL_FAILURE);
-		}
-	}
+            session.transfer(flowFile, REL_SUCCESS);
+        } catch (NuxeoClientException nce) {
+            session.putAttribute(flowFile, ERROR, nce.getMessage());
+            session.transfer(flowFile, REL_FAILURE);
+        }
+    }
 }

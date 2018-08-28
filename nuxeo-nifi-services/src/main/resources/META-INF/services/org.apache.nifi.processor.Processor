@@ -12,12 +12,16 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+org.nuxeo.labs.nifi.processors.CreateNuxeoDocument
 org.nuxeo.labs.nifi.processors.DeleteNuxeoDocument
+org.nuxeo.labs.nifi.processors.ExecuteNuxeoQuery
 org.nuxeo.labs.nifi.processors.GetNuxeoBlob
 org.nuxeo.labs.nifi.processors.GetNuxeoChildren
 org.nuxeo.labs.nifi.processors.GetNuxeoDocument
-org.nuxeo.labs.nifi.processors.GetNuxeoQuery
 org.nuxeo.labs.nifi.processors.GetNuxeoWorkflows
-org.nuxeo.labs.nifi.processors.PutNuxeoBlob
-org.nuxeo.labs.nifi.processors.PutNuxeoDocument
+org.nuxeo.labs.nifi.processors.NuxeoBlobOperation
+org.nuxeo.labs.nifi.processors.NuxeoDocumentOperation
+org.nuxeo.labs.nifi.processors.NuxeoDocumentToAttributes
+org.nuxeo.labs.nifi.processors.NuxeoOperation
 org.nuxeo.labs.nifi.processors.StartNuxeoWorkflow
+org.nuxeo.labs.nifi.processors.UpdateNuxeoDocument

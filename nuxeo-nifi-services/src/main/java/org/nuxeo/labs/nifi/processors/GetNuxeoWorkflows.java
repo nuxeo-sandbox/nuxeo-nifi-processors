@@ -18,7 +18,6 @@ package org.nuxeo.labs.nifi.processors;
 
 import java.io.IOException;
 import java.io.OutputStream;
-import java.nio.charset.Charset;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashSet;
@@ -48,68 +47,55 @@ import org.nuxeo.client.spi.NuxeoClientException;
 @CapabilityDescription("Get active workflows for documents within Nuxeo.")
 @SeeAlso({ StartNuxeoWorkflow.class })
 @ReadsAttributes({
-		@ReadsAttribute(attribute = "nx-docid", description = "Document ID to use if the path isn't specified"),
-		@ReadsAttribute(attribute = "nx-path", description = "Path to use, nx-docid overrides") })
-@WritesAttributes({ @WritesAttribute(attribute = "nx-wfid", description = "ID of document workflow instance."),
-		@WritesAttribute(attribute = "nx-error", description = "Error set if problem occurs") })
+        @ReadsAttribute(attribute = "nx-docid", description = "Document ID to use if the path isn't specified"),
+        @ReadsAttribute(attribute = "nx-path", description = "Path to use, nx-docid overrides") })
+@WritesAttributes({ @WritesAttribute(attribute = "nx-workflow-id", description = "ID of document workflow instance."),
+        @WritesAttribute(attribute = NuxeoAttributes.ERROR, description = "Error set if problem occurs") })
 public class GetNuxeoWorkflows extends AbstractNuxeoProcessor {
 
-	private List<PropertyDescriptor> descriptors;
+    @Override
+    protected void init(final ProcessorInitializationContext context) {
+        final List<PropertyDescriptor> descriptors = new ArrayList<PropertyDescriptor>();
+        descriptors.add(NUXEO_CLIENT_SERVICE);
+        descriptors.add(TARGET_REPO);
+        descriptors.add(TARGET_PATH);
+        this.descriptors = Collections.unmodifiableList(descriptors);
 
-	private Set<Relationship> relationships;
+        final Set<Relationship> relationships = new HashSet<Relationship>();
+        relationships.add(REL_SUCCESS);
+        relationships.add(REL_FAILURE);
+        this.relationships = Collections.unmodifiableSet(relationships);
+    }
 
-	@Override
-	protected void init(final ProcessorInitializationContext context) {
-		final List<PropertyDescriptor> descriptors = new ArrayList<PropertyDescriptor>();
-		descriptors.add(NUXEO_CLIENT_SERVICE);
-		descriptors.add(TARGET_REPO);
-		descriptors.add(TARGET_PATH);
-		this.descriptors = Collections.unmodifiableList(descriptors);
+    @Override
+    public void onTrigger(final ProcessContext context, final ProcessSession session) throws ProcessException {
+        FlowFile flowFile = session.get();
+        if (flowFile == null) {
+            return;
+        }
 
-		final Set<Relationship> relationships = new HashSet<Relationship>();
-		relationships.add(REL_SUCCESS);
-		relationships.add(REL_FAILURE);
-		this.relationships = Collections.unmodifiableSet(relationships);
-	}
+        try {
+            // Invoke document operation
+            Workflows wfs = getDocument(context, flowFile).fetchWorkflowInstances();
 
-	@Override
-	public Set<Relationship> getRelationships() {
-		return this.relationships;
-	}
+            // Write documents to flowfile
+            for (Workflow wf : wfs.getWorkflows()) {
+                FlowFile childFlow = session.create(flowFile);
 
-	@Override
-	public final List<PropertyDescriptor> getSupportedPropertyDescriptors() {
-		return descriptors;
-	}
-
-	@Override
-	public void onTrigger(final ProcessContext context, final ProcessSession session) throws ProcessException {
-		FlowFile flowFile = session.get();
-		if (flowFile == null) {
-			return;
-		}
-
-		try {
-			// Invoke document operation
-			Workflows wfs = getDocument(context, flowFile).fetchWorkflowInstances();
-
-			// Write documents to flowfile
-			for (Workflow wf : wfs.getWorkflows()) {
-				FlowFile childFlow = session.create(flowFile);
-
-				// Convert and write to JSON
-				String json = this.nuxeoClient.getConverterFactory().writeJSON(wf);
-				try (OutputStream out = session.write(childFlow)) {
-					IOUtils.write(json, out, Charset.forName("UTF-8"));
-				} catch (IOException e) {
-					continue;
-				}
-				session.putAttribute(childFlow, "nx-wfid", wf.getId());
-				session.transfer(childFlow, REL_SUCCESS);
-			}
-		} catch (NuxeoClientException nce) {
-			session.putAttribute(flowFile, "nx-error", nce.getMessage());
-			session.transfer(flowFile, REL_FAILURE);
-		}
-	}
+                // Convert and write to JSON
+                String json = this.nuxeoClient.getConverterFactory().writeJSON(wf);
+                try (OutputStream out = session.write(childFlow)) {
+                    IOUtils.write(json, out, UTF8);
+                } catch (IOException e) {
+                    continue;
+                }
+                session.putAttribute(childFlow, ENTITY_TYPE, wf.getEntityType());
+                session.putAttribute(childFlow, "nx-workflow-id", wf.getId());
+                session.transfer(childFlow, REL_SUCCESS);
+            }
+        } catch (NuxeoClientException nce) {
+            session.putAttribute(flowFile, ERROR, nce.getMessage());
+            session.transfer(flowFile, REL_FAILURE);
+        }
+    }
 }

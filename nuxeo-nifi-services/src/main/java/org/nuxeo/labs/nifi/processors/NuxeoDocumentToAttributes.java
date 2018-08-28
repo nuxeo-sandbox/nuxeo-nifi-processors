@@ -16,15 +16,17 @@
  */
 package org.nuxeo.labs.nifi.processors;
 
-import java.io.IOException;
-import java.io.OutputStream;
+import java.io.InputStream;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Map;
+import java.util.Map.Entry;
 import java.util.Set;
 
 import org.apache.commons.io.IOUtils;
+import org.apache.nifi.annotation.behavior.EventDriven;
 import org.apache.nifi.annotation.behavior.ReadsAttribute;
 import org.apache.nifi.annotation.behavior.ReadsAttributes;
 import org.apache.nifi.annotation.behavior.WritesAttribute;
@@ -40,19 +42,16 @@ import org.apache.nifi.processor.ProcessorInitializationContext;
 import org.apache.nifi.processor.Relationship;
 import org.apache.nifi.processor.exception.ProcessException;
 import org.nuxeo.client.objects.Document;
+import org.nuxeo.client.objects.EntityTypes;
 import org.nuxeo.client.spi.NuxeoClientException;
 
-@Tags({ "nuxeo", "get", "document" })
-@CapabilityDescription("Retreive a document from Nuxeo as JSON.")
-@SeeAlso({ UpdateNuxeoDocument.class, GetNuxeoBlob.class })
-@ReadsAttributes({
-        @ReadsAttribute(attribute = NuxeoAttributes.DOC_ID, description = "Document ID to use if the path isn't specified"),
-        @ReadsAttribute(attribute = NuxeoAttributes.PATH, description = "Path to use, nx-docid overrides") })
-@WritesAttributes({
-        @WritesAttribute(attribute = NuxeoAttributes.DOC_ID, description = "Added for each document retreived"),
-        @WritesAttribute(attribute = NuxeoAttributes.ENTITY_TYPE, description = "Entity type of content retrieved"),
-        @WritesAttribute(attribute = NuxeoAttributes.ERROR, description = "Error set if problem occurs") })
-public class GetNuxeoDocument extends AbstractNuxeoProcessor {
+@Tags({ "nuxeo", "document", "attributes" })
+@CapabilityDescription("Extract properties from a Nuxeo Document and set them as FlowFile attributes.")
+@SeeAlso({ GetNuxeoDocument.class })
+@EventDriven
+@ReadsAttributes({ @ReadsAttribute(attribute = "", description = "") })
+@WritesAttributes({ @WritesAttribute(attribute = NuxeoAttributes.DOC_ID, description = "Document ID") })
+public class NuxeoDocumentToAttributes extends AbstractNuxeoDynamicProcessor {
 
     @Override
     protected void init(final ProcessorInitializationContext context) {
@@ -76,24 +75,54 @@ public class GetNuxeoDocument extends AbstractNuxeoProcessor {
         }
 
         try {
-            // Invoke document operation
-            Document doc = getDocument(context, flowFile);
+            Document doc = null;
 
-            // Convert and write to JSON
-            String json = this.nuxeoClient.getConverterFactory().writeJSON(doc);
-            try (OutputStream out = session.write(flowFile)) {
-                IOUtils.write(json, out, UTF8);
-            } catch (IOException e) {
-                session.putAttribute(flowFile, ERROR, e.getMessage());
-                session.transfer(flowFile, REL_FAILURE);
-                return;
+            // Try to load from existing context
+            String entityType = flowFile.getAttribute(ENTITY_TYPE);
+            if (EntityTypes.DOCUMENT.equals(entityType)) {
+                try (InputStream in = session.read(flowFile)) {
+                    String json = IOUtils.toString(in, UTF8);
+                    doc = this.nuxeoClient.getConverterFactory().readJSON(json, Document.class);
+                    doc.reconnectWith(this.nuxeoClient);
+                } catch (Exception iox) {
+                    getLogger().warn("Unable to load document from existing resource", iox);
+                }
             }
+
+            // Load from server
+            if (doc == null) {
+                doc = getDocument(context, flowFile);
+            }
+
+            if (this.dynamicProperties != null && !this.dynamicProperties.isEmpty()) {
+                for (PropertyDescriptor desc : this.dynamicProperties) {
+                    // Map the Document properties
+                    String key = desc.getName();
+                    String item = getArg(context, flowFile, null, desc);
+                    Object val = doc.getPropertyValue(item);
+                    if (val != null) {
+                        session.putAttribute(flowFile, key, val.toString());
+                    }
+                }
+            } else {
+                // Map all properties that match
+                Map<String, Object> props = doc.getProperties();
+                for (Entry<String, Object> prop : props.entrySet()) {
+                    Object val = prop.getValue();
+                    if (val != null) {
+                        session.putAttribute(flowFile, prop.getKey(), val.toString());
+                    }
+                }
+            }
+
             session.putAttribute(flowFile, ENTITY_TYPE, doc.getEntityType());
             session.putAttribute(flowFile, DOC_ID, doc.getId());
             session.transfer(flowFile, REL_SUCCESS);
         } catch (NuxeoClientException nce) {
-            session.putAttribute(flowFile, ERROR, nce.getMessage());
+            getLogger().error("Unable to store document", nce);
+            session.putAttribute(flowFile, ERROR, String.valueOf(nce));
             session.transfer(flowFile, REL_FAILURE);
         }
     }
+
 }

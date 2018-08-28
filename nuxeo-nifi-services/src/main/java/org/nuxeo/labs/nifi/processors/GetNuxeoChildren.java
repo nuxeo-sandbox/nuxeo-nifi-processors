@@ -18,7 +18,6 @@ package org.nuxeo.labs.nifi.processors;
 
 import java.io.IOException;
 import java.io.OutputStream;
-import java.nio.charset.Charset;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashSet;
@@ -43,79 +42,73 @@ import org.apache.nifi.processor.Relationship;
 import org.apache.nifi.processor.exception.ProcessException;
 import org.nuxeo.client.objects.Document;
 import org.nuxeo.client.objects.Documents;
+import org.nuxeo.client.objects.Repository;
 import org.nuxeo.client.spi.NuxeoClientException;
 
 @Tags({ "nuxeo", "get", "children" })
 @CapabilityDescription("Get the children documents of a given folderish path.")
 @SeeAlso({ GetNuxeoDocument.class })
 @ReadsAttributes({
-		@ReadsAttribute(attribute = "nx-docid", description = "Document ID to use if the path isn't specified"),
-		@ReadsAttribute(attribute = "nx-path", description = "Path to use, nx-docid overrides") })
-@WritesAttributes({ @WritesAttribute(attribute = "nx-docid", description = "Added for each document retreived"),
-		@WritesAttribute(attribute = "nx-error", description = "Error set if problem occurs") })
+        @ReadsAttribute(attribute = NuxeoAttributes.DOC_ID, description = "Document ID to use if the path isn't specified"),
+        @ReadsAttribute(attribute = NuxeoAttributes.PATH, description = "Path to use, nx-docid overrides") })
+@WritesAttributes({
+        @WritesAttribute(attribute = NuxeoAttributes.DOC_ID, description = "Added for each document retreived"),
+        @WritesAttribute(attribute = NuxeoAttributes.ERROR, description = "Error set if problem occurs") })
 @TriggerWhenEmpty
 public class GetNuxeoChildren extends AbstractNuxeoProcessor {
 
-	private List<PropertyDescriptor> descriptors;
+    @Override
+    protected void init(final ProcessorInitializationContext context) {
+        final List<PropertyDescriptor> descriptors = new ArrayList<PropertyDescriptor>();
+        descriptors.add(NUXEO_CLIENT_SERVICE);
+        descriptors.add(TARGET_REPO);
+        descriptors.add(TARGET_PATH);
+        this.descriptors = Collections.unmodifiableList(descriptors);
 
-	private Set<Relationship> relationships;
+        final Set<Relationship> relationships = new HashSet<Relationship>();
+        relationships.add(REL_SUCCESS);
+        relationships.add(REL_ORIGINAL);
+        relationships.add(REL_FAILURE);
+        this.relationships = Collections.unmodifiableSet(relationships);
+    }
 
-	@Override
-	protected void init(final ProcessorInitializationContext context) {
-		final List<PropertyDescriptor> descriptors = new ArrayList<PropertyDescriptor>();
-		descriptors.add(NUXEO_CLIENT_SERVICE);
-		descriptors.add(TARGET_REPO);
-		descriptors.add(TARGET_PATH);
-		this.descriptors = Collections.unmodifiableList(descriptors);
+    @Override
+    public void onTrigger(final ProcessContext context, final ProcessSession session) throws ProcessException {
+        FlowFile flowFile = session.get();
+        if (flowFile == null) {
+            return;
+        }
 
-		final Set<Relationship> relationships = new HashSet<Relationship>();
-		relationships.add(REL_SUCCESS);
-		relationships.add(REL_ORIGINAL);
-		relationships.add(REL_FAILURE);
-		this.relationships = Collections.unmodifiableSet(relationships);
-	}
+        // Get target path
+        String docId = getArg(context, flowFile, DOC_ID, null);
+        String path = getArg(context, flowFile, PATH, TARGET_PATH);
 
-	@Override
-	public Set<Relationship> getRelationships() {
-		return this.relationships;
-	}
+        try {
+            // Invoke document operation
+            Repository rep = getRepository(context);
+            Documents docs = docId != null ? rep.fetchChildrenById(docId) : rep.fetchChildrenByPath(path);
 
-	@Override
-	public final List<PropertyDescriptor> getSupportedPropertyDescriptors() {
-		return descriptors;
-	}
+            // Write documents to flowfile
+            for (Document doc : docs.getDocuments()) {
+                FlowFile childFlow = session.create(flowFile);
 
-	@Override
-	public void onTrigger(final ProcessContext context, final ProcessSession session) throws ProcessException {
-		FlowFile flowFile = session.get();
-		if (flowFile == null) {
-			return;
-		}
+                // Convert and write to JSON
+                String json = this.nuxeoClient.getConverterFactory().writeJSON(doc);
+                try (OutputStream out = session.write(childFlow)) {
+                    IOUtils.write(json, out, UTF8);
+                } catch (IOException e) {
+                    continue;
+                }
+                session.putAttribute(childFlow, ENTITY_TYPE, doc.getEntityType());
+                session.putAttribute(childFlow, DOC_ID, doc.getId());
+                session.transfer(childFlow, REL_SUCCESS);
+            }
+        } catch (NuxeoClientException nce) {
+            session.putAttribute(flowFile, ERROR, nce.getMessage());
+            session.transfer(flowFile, REL_FAILURE);
+            return;
+        }
 
-		try {
-			// Invoke document operation
-			Documents docs = getDocument(context, flowFile).fetchChildren();
-
-			// Write documents to flowfile
-			for (Document doc : docs.getDocuments()) {
-				FlowFile childFlow = session.create(flowFile);
-
-				// Convert and write to JSON
-				String json = this.nuxeoClient.getConverterFactory().writeJSON(doc);
-				try (OutputStream out = session.write(childFlow)) {
-					IOUtils.write(json, out, Charset.forName("UTF-8"));
-				} catch (IOException e) {
-					continue;
-				}
-				session.putAttribute(childFlow, "nx-docid", doc.getId());
-				session.transfer(childFlow, REL_SUCCESS);
-			}
-		} catch (NuxeoClientException nce) {
-			session.putAttribute(flowFile, "nx-error", nce.getMessage());
-			session.transfer(flowFile, REL_FAILURE);
-			return;
-		}
-
-		session.transfer(flowFile, REL_ORIGINAL);
-	}
+        session.transfer(flowFile, REL_ORIGINAL);
+    }
 }

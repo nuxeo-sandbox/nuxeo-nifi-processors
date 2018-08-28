@@ -1,5 +1,9 @@
 package org.nuxeo.labs.nifi.processors;
 
+import java.nio.charset.Charset;
+import java.util.List;
+import java.util.Set;
+
 import org.apache.nifi.annotation.lifecycle.OnScheduled;
 import org.apache.nifi.annotation.lifecycle.OnStopped;
 import org.apache.nifi.components.PropertyDescriptor;
@@ -16,7 +20,7 @@ import org.nuxeo.client.objects.Document;
 import org.nuxeo.client.objects.Repository;
 import org.nuxeo.labs.nifi.NuxeoClientService;
 
-public abstract class AbstractNuxeoProcessor extends AbstractProcessor {
+public abstract class AbstractNuxeoProcessor extends AbstractProcessor implements NuxeoAttributes {
 
     public static final PropertyDescriptor NUXEO_CLIENT_SERVICE = new PropertyDescriptor.Builder().name(
             "CLIENT_SERVICE")
@@ -48,18 +52,7 @@ public abstract class AbstractNuxeoProcessor extends AbstractProcessor {
                                                                                                  "Target Path to use.")
                                                                                          .expressionLanguageSupported(
                                                                                                  ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
-                                                                                         .required(true)
-                                                                                         .addValidator(
-                                                                                                 StandardValidators.NON_BLANK_VALIDATOR)
-                                                                                         .build();
-
-    public static final PropertyDescriptor TARGET_NAME = new PropertyDescriptor.Builder().name("TARGET_NAME")
-                                                                                         .displayName("Target Name")
-                                                                                         .description(
-                                                                                                 "Target Name to use.")
-                                                                                         .expressionLanguageSupported(
-                                                                                                 ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
-                                                                                         .required(true)
+                                                                                         .required(false)
                                                                                          .addValidator(
                                                                                                  StandardValidators.NON_BLANK_VALIDATOR)
                                                                                          .build();
@@ -86,6 +79,18 @@ public abstract class AbstractNuxeoProcessor extends AbstractProcessor {
                                                                                                   StandardValidators.NON_BLANK_VALIDATOR)
                                                                                           .build();
 
+    public static final PropertyDescriptor FILTER_SCHEMAS = new PropertyDescriptor.Builder().name("FILTER_SCHEMAS")
+                                                                                            .displayName(
+                                                                                                    "Include Schemas")
+                                                                                            .description(
+                                                                                                    "Only include the specified schema attributes.")
+                                                                                            .required(false)
+                                                                                            .addValidator(
+                                                                                                    StandardValidators.createListValidator(
+                                                                                                            true, true,
+                                                                                                            StandardValidators.ATTRIBUTE_KEY_VALIDATOR))
+                                                                                            .build();
+
     public static final Relationship REL_SUCCESS = new Relationship.Builder().name("SUCCESS")
                                                                              .description("Document retrieved")
                                                                              .build();
@@ -98,9 +103,15 @@ public abstract class AbstractNuxeoProcessor extends AbstractProcessor {
                                                                              .description("Document unavailable")
                                                                              .build();
 
+    protected static final Charset UTF8 = Charset.forName("UTF-8");
+
     protected NuxeoClientService nuxeoClientService;
 
     protected NuxeoClient nuxeoClient;
+
+    protected List<PropertyDescriptor> descriptors;
+
+    protected Set<Relationship> relationships;
 
     protected NuxeoClient getClient(final ProcessContext context) {
         this.nuxeoClientService = context.getProperty(NUXEO_CLIENT_SERVICE)
@@ -123,23 +134,45 @@ public abstract class AbstractNuxeoProcessor extends AbstractProcessor {
             repo = pval.getValue();
         }
 
+        // TODO: specify schemas per processor
         if (repo == null) {
-            return this.nuxeoClient.repository();
+            return this.nuxeoClient.schemas("*").repository();
         } else {
-            return this.nuxeoClient.repository(repo);
+            return this.nuxeoClient.schemas("*").repository(repo);
         }
+    }
+
+    @Override
+    public Set<Relationship> getRelationships() {
+        return this.relationships;
+    }
+
+    @Override
+    public final List<PropertyDescriptor> getSupportedPropertyDescriptors() {
+        return this.descriptors;
+    }
+
+    protected void processorScheduled(final ProcessContext context) {
+        // no-op
+    }
+
+    protected void processorStopped(final ProcessContext context) {
+        // no-op
     }
 
     @OnScheduled
     public void onScheduled(final ProcessContext context) {
         if (this.nuxeoClient != null) {
-            onStopped();
+            onStopped(context);
         }
         this.nuxeoClient = getClient(context);
+        processorScheduled(context);
     }
 
     @OnStopped
-    public void onStopped() {
+    public void onStopped(final ProcessContext context) {
+        processorStopped(context);
+
         if (this.nuxeoClient != null) {
             this.nuxeoClient.disconnect();
         }
@@ -148,7 +181,7 @@ public abstract class AbstractNuxeoProcessor extends AbstractProcessor {
     }
 
     protected String getArg(ProcessContext ctx, FlowFile ff, String key, PropertyDescriptor desc) {
-        if (ff.getAttribute(key) != null) {
+        if (key != null && ff.getAttribute(key) != null) {
             return ff.getAttribute(key);
         }
         if (desc != null) {
@@ -162,8 +195,8 @@ public abstract class AbstractNuxeoProcessor extends AbstractProcessor {
     }
 
     protected Document getDocument(ProcessContext context, FlowFile flowFile) {
-        String docId = getArg(context, flowFile, "nx-docid", null);
-        String path = getArg(context, flowFile, "nx-path", TARGET_PATH);
+        String docId = getArg(context, flowFile, DOC_ID, null);
+        String path = getArg(context, flowFile, PATH, TARGET_PATH);
 
         Repository rep = getRepository(context);
         Document doc = docId != null ? rep.fetchDocumentById(docId) : rep.fetchDocumentByPath(path);

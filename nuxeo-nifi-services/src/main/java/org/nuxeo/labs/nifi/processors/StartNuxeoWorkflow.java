@@ -46,69 +46,63 @@ import org.nuxeo.client.spi.NuxeoClientException;
 @CapabilityDescription("Start workflow for documents within Nuxeo.")
 @SeeAlso({ GetNuxeoWorkflows.class })
 @ReadsAttributes({ @ReadsAttribute(attribute = "nx-workflow", description = "Workflow to start."),
-		@ReadsAttribute(attribute = "nx-docid", description = "Document ID to use if the path isn't specified"),
-		@ReadsAttribute(attribute = "nx-path", description = "Path to use, nx-docid overrides") })
-@WritesAttributes({ @WritesAttribute(attribute = "nx-wfid", description = "ID of workflow that has been started."),
-		@WritesAttribute(attribute = "nx-error", description = "Error set if problem occurs") })
+        @ReadsAttribute(attribute = "nx-docid", description = "Document ID to use if the path isn't specified"),
+        @ReadsAttribute(attribute = "nx-path", description = "Path to use, nx-docid overrides") })
+@WritesAttributes({
+        @WritesAttribute(attribute = "nx-workflow-id", description = "ID of workflow that has been started."),
+        @WritesAttribute(attribute = NuxeoAttributes.ERROR, description = "Error set if problem occurs") })
 public class StartNuxeoWorkflow extends AbstractNuxeoProcessor {
 
-	public static final PropertyDescriptor WORKFLOW = new PropertyDescriptor.Builder().name("WORKFLOW")
-			.displayName("Workflow").description("Workflow to start.")
-			.expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES).required(true)
-			.addValidator(Validator.VALID).build();
+    public static final PropertyDescriptor WORKFLOW = new PropertyDescriptor.Builder().name("WORKFLOW")
+                                                                                      .displayName("Workflow")
+                                                                                      .description("Workflow to start.")
+                                                                                      .expressionLanguageSupported(
+                                                                                              ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
+                                                                                      .required(true)
+                                                                                      .addValidator(Validator.VALID)
+                                                                                      .build();
 
-	private List<PropertyDescriptor> descriptors;
+    @Override
+    protected void init(final ProcessorInitializationContext context) {
+        final List<PropertyDescriptor> descriptors = new ArrayList<PropertyDescriptor>();
+        descriptors.add(NUXEO_CLIENT_SERVICE);
+        descriptors.add(TARGET_REPO);
+        descriptors.add(TARGET_PATH);
+        descriptors.add(WORKFLOW);
+        this.descriptors = Collections.unmodifiableList(descriptors);
 
-	private Set<Relationship> relationships;
+        final Set<Relationship> relationships = new HashSet<Relationship>();
+        relationships.add(REL_SUCCESS);
+        relationships.add(REL_FAILURE);
+        this.relationships = Collections.unmodifiableSet(relationships);
+    }
 
-	@Override
-	protected void init(final ProcessorInitializationContext context) {
-		final List<PropertyDescriptor> descriptors = new ArrayList<PropertyDescriptor>();
-		descriptors.add(NUXEO_CLIENT_SERVICE);
-		descriptors.add(TARGET_REPO);
-		descriptors.add(TARGET_PATH);
-		descriptors.add(WORKFLOW);
-		this.descriptors = Collections.unmodifiableList(descriptors);
+    @Override
+    public void onTrigger(final ProcessContext context, final ProcessSession session) throws ProcessException {
+        FlowFile flowFile = session.get();
+        if (flowFile == null) {
+            return;
+        }
 
-		final Set<Relationship> relationships = new HashSet<Relationship>();
-		relationships.add(REL_SUCCESS);
-		relationships.add(REL_FAILURE);
-		this.relationships = Collections.unmodifiableSet(relationships);
-	}
+        // Evaluate target path
+        String workflowName = getArg(context, flowFile, "nx-workflow", WORKFLOW);
+        String docId = getArg(context, flowFile, DOC_ID, null);
+        String path = getArg(context, flowFile, PATH, TARGET_PATH);
 
-	@Override
-	public Set<Relationship> getRelationships() {
-		return this.relationships;
-	}
+        try {
+            // Invoke document operation
+            Repository rep = getRepository(context);
+            Workflow model = rep.fetchWorkflowModel(workflowName);
+            Workflow instance = docId != null ? rep.startWorkflowInstanceWithDocId(docId, model)
+                    : rep.startWorkflowInstanceWithDocPath(path, model);
 
-	@Override
-	public final List<PropertyDescriptor> getSupportedPropertyDescriptors() {
-		return descriptors;
-	}
-
-	@Override
-	public void onTrigger(final ProcessContext context, final ProcessSession session) throws ProcessException {
-		FlowFile flowFile = session.get();
-		if (flowFile == null) {
-			return;
-		}
-
-		// Evaluate target path
-		String workflowName = getArg(context, flowFile, "nx-workflow", WORKFLOW);
-
-		try {
-			// Invoke document operation
-			Repository rep = getRepository(context);
-			Workflow model = rep.fetchWorkflowModel(workflowName);
-			Workflow instance = getDocument(context, flowFile).startWorkflowInstance(model);
-
-			// Add workflow instance attribute
-			session.putAttribute(flowFile, "nx-wfid", instance.getId());
-			session.transfer(flowFile, REL_SUCCESS);
-		} catch (NuxeoClientException nce) {
-			getLogger().warn("Unable to start workflow: " + workflowName, nce);
-			session.putAttribute(flowFile, "nx-error", nce.getMessage());
-			session.transfer(flowFile, REL_FAILURE);
-		}
-	}
+            // Add workflow instance attribute
+            session.putAttribute(flowFile, "nx-workflow-id", instance.getId());
+            session.transfer(flowFile, REL_SUCCESS);
+        } catch (NuxeoClientException nce) {
+            getLogger().warn("Unable to start workflow: " + workflowName, nce);
+            session.putAttribute(flowFile, ERROR, nce.getMessage());
+            session.transfer(flowFile, REL_FAILURE);
+        }
+    }
 }

@@ -7,87 +7,166 @@ import java.util.List;
 import org.apache.nifi.annotation.documentation.CapabilityDescription;
 import org.apache.nifi.annotation.documentation.Tags;
 import org.apache.nifi.annotation.lifecycle.OnEnabled;
+import org.apache.nifi.components.AllowableValue;
 import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.components.Validator;
 import org.apache.nifi.controller.AbstractControllerService;
 import org.apache.nifi.controller.ConfigurationContext;
+import org.apache.nifi.expression.ExpressionLanguageScope;
 import org.apache.nifi.processor.util.StandardValidators;
 import org.apache.nifi.reporting.InitializationException;
 import org.nuxeo.client.NuxeoClient;
+import org.nuxeo.client.spi.auth.BasicAuthInterceptor;
+import org.nuxeo.client.spi.auth.PortalSSOAuthInterceptor;
+import org.nuxeo.client.spi.auth.TokenAuthInterceptor;
 import org.nuxeo.labs.nifi.NuxeoClientService;
+
+import okhttp3.Interceptor;
 
 @Tags({ "nuxeo", "configuration" })
 @CapabilityDescription("Provides a controller service to manage Nuxeo server connections.")
 public class NuxeoClientServiceImpl extends AbstractControllerService implements NuxeoClientService {
 
-	public static final PropertyDescriptor SERVER_URL = new PropertyDescriptor.Builder().name("SERVER_URL")
-			.displayName("Server URL").description("Nuxeo Server URL.").defaultValue("http://localhost:8080/nuxeo")
-			.required(true).addValidator(StandardValidators.URL_VALIDATOR).build();
+    static final String BASIC = "Basic";
 
-	public static final PropertyDescriptor DEFAULT_REPO = new PropertyDescriptor.Builder().name("DEFAULT_REPO")
-			.displayName("Default Repository").description("Default repository to use.").required(false)
-			.addValidator(Validator.VALID).build();
+    static final String TOKEN = "Token";
 
-	public static final PropertyDescriptor USERNAME = new PropertyDescriptor.Builder().name("USERNAME")
-			.displayName("Username").description("Nuxeo User.").required(true)
-			.addValidator(StandardValidators.NON_BLANK_VALIDATOR).build();
+    static final String PORTAL = "Portal";
 
-	public static final PropertyDescriptor CREDENTIALS = new PropertyDescriptor.Builder().name("CREDENTIALS")
-			.displayName("Credentials").description("Nuxeo User Credentials.").sensitive(true).required(true)
-			.addValidator(StandardValidators.NON_BLANK_VALIDATOR).build();
+    public static final PropertyDescriptor SERVER_URL = new PropertyDescriptor.Builder().name("SERVER_URL")
+                                                                                        .displayName("Server URL")
+                                                                                        .description(
+                                                                                                "Nuxeo Server URL.")
+                                                                                        .defaultValue(
+                                                                                                "http://localhost:8080/nuxeo")
+                                                                                        .expressionLanguageSupported(
+                                                                                                ExpressionLanguageScope.VARIABLE_REGISTRY)
+                                                                                        .required(true)
+                                                                                        .addValidator(
+                                                                                                StandardValidators.URL_VALIDATOR)
+                                                                                        .build();
 
-	private static final List<PropertyDescriptor> serviceProperties;
+    public static final PropertyDescriptor DEFAULT_REPO = new PropertyDescriptor.Builder().name("DEFAULT_REPO")
+                                                                                          .displayName(
+                                                                                                  "Default Repository")
+                                                                                          .description(
+                                                                                                  "Default repository to use.")
+                                                                                          .expressionLanguageSupported(
+                                                                                                  ExpressionLanguageScope.VARIABLE_REGISTRY)
+                                                                                          .required(false)
+                                                                                          .addValidator(Validator.VALID)
+                                                                                          .build();
 
-	static {
-		final List<PropertyDescriptor> props = new ArrayList<>();
-		props.add(SERVER_URL);
-		props.add(DEFAULT_REPO);
-		props.add(USERNAME);
-		props.add(CREDENTIALS);
-		serviceProperties = Collections.unmodifiableList(props);
-	}
+    public static final PropertyDescriptor AUTH_TYPE = new PropertyDescriptor.Builder().name("AUTH_TYPE")
+                                                                                       .displayName(
+                                                                                               "Authentication Type")
+                                                                                       .description(
+                                                                                               "The type of authentication to use with the Nuxeo Server.")
+                                                                                       .required(true)
+                                                                                       .allowableValues(
+                                                                                               new AllowableValue(BASIC,
+                                                                                                       BASIC,
+                                                                                                       "Username and Password credentials authentication."),
+                                                                                               new AllowableValue(TOKEN,
+                                                                                                       TOKEN,
+                                                                                                       "Token credential authentication. Username is required but ignored."),
+                                                                                               new AllowableValue(
+                                                                                                       PORTAL, PORTAL,
+                                                                                                       "Username and Secret credentials authentication."))
+                                                                                       .defaultValue(BASIC)
+                                                                                       .build();
 
-	private String serverUrl;
+    public static final PropertyDescriptor USERNAME = new PropertyDescriptor.Builder().name("USERNAME")
+                                                                                      .displayName("Username")
+                                                                                      .description("Nuxeo User.")
+                                                                                      .expressionLanguageSupported(
+                                                                                              ExpressionLanguageScope.VARIABLE_REGISTRY)
+                                                                                      .required(true)
+                                                                                      .addValidator(
+                                                                                              StandardValidators.NON_BLANK_VALIDATOR)
+                                                                                      .build();
 
-	private String defaultRepo;
+    public static final PropertyDescriptor CREDENTIALS = new PropertyDescriptor.Builder().name("CREDENTIALS")
+                                                                                         .displayName("Credentials")
+                                                                                         .description(
+                                                                                                 "Nuxeo User Credentials.")
+                                                                                         .expressionLanguageSupported(
+                                                                                                 ExpressionLanguageScope.VARIABLE_REGISTRY)
+                                                                                         .sensitive(true)
+                                                                                         .required(true)
+                                                                                         .addValidator(
+                                                                                                 StandardValidators.NON_BLANK_VALIDATOR)
+                                                                                         .build();
 
-	private String username;
+    private static final List<PropertyDescriptor> serviceProperties;
 
-	private String credentials;
+    static {
+        final List<PropertyDescriptor> props = new ArrayList<>();
+        props.add(SERVER_URL);
+        props.add(DEFAULT_REPO);
+        props.add(AUTH_TYPE);
+        props.add(USERNAME);
+        props.add(CREDENTIALS);
+        serviceProperties = Collections.unmodifiableList(props);
+    }
 
-	@Override
-	protected List<PropertyDescriptor> getSupportedPropertyDescriptors() {
-		return serviceProperties;
-	}
+    private String serverUrl;
 
-	@OnEnabled
-	public void onConfigured(final ConfigurationContext context) throws InitializationException {
-		// Destination server
-		serverUrl = context.getProperty(SERVER_URL).getValue();
+    private String defaultRepo;
 
-		// Default repo
-		defaultRepo = context.getProperty(DEFAULT_REPO).getValue();
+    private String authType;
 
-		// Credentials
-		username = context.getProperty(USERNAME).getValue();
-		credentials = context.getProperty(CREDENTIALS).getValue();
-	}
+    private String username;
 
-	public NuxeoClient getClient() {
-		// Build it
-		NuxeoClient client = new NuxeoClient.Builder()
-				// Set URL
-				.url(serverUrl)
-				// Authenticate
-				.authentication(username, credentials)
-				// Connect
-				.connect();
-		// Ship it
-		return client;
-	}
+    private String credentials;
 
-	public String getDefaultRepository() {
-		return this.defaultRepo;
-	}
+    @Override
+    protected List<PropertyDescriptor> getSupportedPropertyDescriptors() {
+        return serviceProperties;
+    }
+
+    @OnEnabled
+    public void onConfigured(final ConfigurationContext context) throws InitializationException {
+        // Destination server
+        serverUrl = context.getProperty(SERVER_URL).getValue();
+
+        // Default repo
+        defaultRepo = context.getProperty(DEFAULT_REPO).getValue();
+
+        // Credentials
+        authType = context.getProperty(AUTH_TYPE).getValue();
+        username = context.getProperty(USERNAME).getValue();
+        credentials = context.getProperty(CREDENTIALS).getValue();
+    }
+
+    public NuxeoClient getClient() {
+        Interceptor auth = null;
+        switch (authType) {
+        case TOKEN:
+            auth = new TokenAuthInterceptor(credentials);
+            break;
+        case PORTAL:
+            auth = new PortalSSOAuthInterceptor(username, credentials);
+            break;
+        case BASIC:
+        default:
+            auth = new BasicAuthInterceptor(username, credentials);
+        }
+
+        // Build it
+        NuxeoClient client = new NuxeoClient.Builder()
+                                                      // Set URL
+                                                      .url(serverUrl)
+                                                      // Authenticate
+                                                      .authentication(auth)
+                                                      // Connect
+                                                      .connect();
+        // Ship it
+        return client;
+    }
+
+    public String getDefaultRepository() {
+        return this.defaultRepo;
+    }
 
 }

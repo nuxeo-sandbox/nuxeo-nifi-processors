@@ -19,15 +19,12 @@ package org.nuxeo.labs.nifi.processors;
 import java.util.HashMap;
 import java.util.Map;
 
-import org.apache.nifi.flowfile.FlowFile;
-import org.apache.nifi.util.FlowFileValidator;
 import org.apache.nifi.util.TestRunner;
 import org.apache.nifi.util.TestRunners;
-import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
 
-public class ITGetNuxeoBlobTest extends BaseTest {
+public class ITDeleteNuxeoDocumentTest extends BaseTest {
 
     private TestRunner testRunner;
 
@@ -35,32 +32,25 @@ public class ITGetNuxeoBlobTest extends BaseTest {
     public void init() throws Exception {
         initDocuments();
 
-        testRunner = TestRunners.newTestRunner(GetNuxeoBlob.class);
+        testRunner = TestRunners.newTestRunner(DeleteNuxeoDocument.class);
         addController(testRunner);
 
-        testRunner.setProperty(GetNuxeoBlob.TARGET_PATH, "${nx-path}");
-        testRunner.setProperty(GetNuxeoBlob.NUXEO_CLIENT_SERVICE, "localhost");
+        testRunner.setProperty(DeleteNuxeoDocument.TARGET_PATH, "${nxpath}");
+        testRunner.setProperty(DeleteNuxeoDocument.NUXEO_CLIENT_SERVICE, "localhost");
+        testRunner.setProperty(DeleteNuxeoDocument.TRASH_DOCUMENT, "true");
+
     }
 
     @Test
     public void testProcessor() {
         Map<String, String> attributes = new HashMap<>();
-        attributes.put("nx-path", FOLDER_2_FILE);
+        attributes.put("nxpath", "/folder_1/note_2");
 
         testRunner.enqueue("", attributes);
         testRunner.run(1);
-
-        testRunner.assertTransferCount(GetNuxeoBlob.REL_FAILURE, 0);
-        testRunner.assertTransferCount(GetNuxeoBlob.REL_SUCCESS, 1);
-        testRunner.assertTransferCount(GetNuxeoBlob.REL_ORIGINAL, 1);
-
-        testRunner.assertAllFlowFiles(GetNuxeoBlob.REL_SUCCESS, new FlowFileValidator() {
-
-            @Override
-            public void assertFlowFile(FlowFile f) {
-                Assert.assertEquals("Unexpected blob size", 1012L, f.getSize());
-            }
-        });
+        testRunner.assertTransferCount(DeleteNuxeoDocument.REL_FAILURE, 0);
+        testRunner.getFlowFilesForRelationship(DeleteNuxeoDocument.REL_SUCCESS).stream().forEach(
+                doc -> doc.assertAttributeEquals("nx-trashed", "true"));
     }
 
 }

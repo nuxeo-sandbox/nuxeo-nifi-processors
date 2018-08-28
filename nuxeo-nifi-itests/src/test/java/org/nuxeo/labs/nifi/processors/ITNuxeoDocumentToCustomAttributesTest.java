@@ -23,42 +23,35 @@ import org.apache.nifi.util.TestRunner;
 import org.apache.nifi.util.TestRunners;
 import org.junit.Before;
 import org.junit.Test;
-import org.nuxeo.labs.nifi.services.NuxeoClientServiceImpl;
 
-public class ITPutNuxeoDocumentTest extends BaseTest {
+public class ITNuxeoDocumentToCustomAttributesTest extends BaseTest {
 
     private TestRunner testRunner;
 
     @Before
     public void init() throws Exception {
-        testRunner = TestRunners.newTestRunner(PutNuxeoDocument.class);
+        initDocuments();
 
-        Map<String, String> props = new HashMap<>();
-        props.put("SERVER_URL", REST_API_URL);
-        props.put("USERNAME", "Administrator");
-        props.put("CREDENTIALS", "Administrator");
+        testRunner = TestRunners.newTestRunner(NuxeoDocumentToAttributes.class);
+        addController(testRunner);
 
-        NuxeoClientServiceImpl controller = new NuxeoClientServiceImpl();
-        testRunner.addControllerService("localhost", controller, props);
-        testRunner.enableControllerService(controller);
-        testRunner.assertValid(controller);
-
-        testRunner.setProperty(PutNuxeoDocument.TARGET_PATH, "${nxpath}");
-        testRunner.setProperty(PutNuxeoDocument.TARGET_NAME, "${nxname}");
-        testRunner.setProperty(PutNuxeoDocument.TARGET_TYPE, "File");
-        testRunner.setProperty(PutNuxeoDocument.NUXEO_CLIENT_SERVICE, "localhost");
+        testRunner.setProperty(NuxeoDocumentToAttributes.TARGET_PATH, "${nxpath}");
+        testRunner.setProperty(NuxeoDocumentToAttributes.NUXEO_CLIENT_SERVICE, "localhost");
+        testRunner.setProperty("title_prop", "dc:title");
     }
 
     @Test
     public void testProcessor() {
         Map<String, String> attributes = new HashMap<>();
-        attributes.put("nxpath", "/");
-        attributes.put("nxname", "put_doc");
+        attributes.put("nxpath", FOLDER_2_FILE);
 
         testRunner.enqueue("", attributes);
         testRunner.run(1);
-        testRunner.assertTransferCount(PutNuxeoDocument.REL_FAILURE, 0);
-        testRunner.assertTransferCount(PutNuxeoDocument.REL_SUCCESS, 1);
+        testRunner.assertTransferCount(NuxeoDocumentToAttributes.REL_FAILURE, 0);
+        testRunner.assertTransferCount(NuxeoDocumentToAttributes.REL_SUCCESS, 1);
+
+        testRunner.getFlowFilesForRelationship(NuxeoDocumentToAttributes.REL_SUCCESS).stream().forEach(
+                doc -> doc.assertAttributeExists("title_prop"));
     }
 
 }

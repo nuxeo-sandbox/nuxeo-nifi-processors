@@ -24,7 +24,6 @@ import org.apache.nifi.util.TestRunners;
 import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
-import org.nuxeo.labs.nifi.services.NuxeoClientServiceImpl;
 
 public class ITGetNuxeoChildrenTest extends BaseTest {
 
@@ -33,16 +32,7 @@ public class ITGetNuxeoChildrenTest extends BaseTest {
     @Before
     public void init() throws Exception {        
         testRunner = TestRunners.newTestRunner(GetNuxeoChildren.class);
-
-        Map<String, String> props = new HashMap<>();
-        props.put("SERVER_URL", REST_API_URL);
-        props.put("USERNAME", "Administrator");
-        props.put("CREDENTIALS", "Administrator");
-
-        NuxeoClientServiceImpl controller = new NuxeoClientServiceImpl();
-        testRunner.addControllerService("localhost", controller, props);
-        testRunner.enableControllerService(controller);
-        testRunner.assertValid(controller);
+        addController(testRunner);
 
         testRunner.setProperty(GetNuxeoChildren.TARGET_PATH, "${nxpath}");
         testRunner.setProperty(GetNuxeoChildren.NUXEO_CLIENT_SERVICE, "localhost");

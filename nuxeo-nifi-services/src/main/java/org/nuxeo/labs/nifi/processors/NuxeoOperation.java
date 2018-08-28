@@ -16,15 +16,12 @@
  */
 package org.nuxeo.labs.nifi.processors;
 
-import java.io.IOException;
-import java.io.OutputStream;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 
-import org.apache.commons.io.IOUtils;
 import org.apache.nifi.annotation.behavior.ReadsAttribute;
 import org.apache.nifi.annotation.behavior.ReadsAttributes;
 import org.apache.nifi.annotation.behavior.WritesAttribute;
@@ -39,32 +36,33 @@ import org.apache.nifi.processor.ProcessSession;
 import org.apache.nifi.processor.ProcessorInitializationContext;
 import org.apache.nifi.processor.Relationship;
 import org.apache.nifi.processor.exception.ProcessException;
-import org.nuxeo.client.objects.Document;
-import org.nuxeo.client.spi.NuxeoClientException;
+import org.nuxeo.client.NuxeoClient;
+import org.nuxeo.client.objects.Operation;
 
-@Tags({ "nuxeo", "get", "document" })
-@CapabilityDescription("Retreive a document from Nuxeo as JSON.")
-@SeeAlso({ UpdateNuxeoDocument.class, GetNuxeoBlob.class })
-@ReadsAttributes({
-        @ReadsAttribute(attribute = NuxeoAttributes.DOC_ID, description = "Document ID to use if the path isn't specified"),
-        @ReadsAttribute(attribute = NuxeoAttributes.PATH, description = "Path to use, nx-docid overrides") })
-@WritesAttributes({
-        @WritesAttribute(attribute = NuxeoAttributes.DOC_ID, description = "Added for each document retreived"),
-        @WritesAttribute(attribute = NuxeoAttributes.ENTITY_TYPE, description = "Entity type of content retrieved"),
-        @WritesAttribute(attribute = NuxeoAttributes.ERROR, description = "Error set if problem occurs") })
-public class GetNuxeoDocument extends AbstractNuxeoProcessor {
+@Tags({ "nuxeo", "operation", "execution" })
+@CapabilityDescription("Execute an operation in Nuxeo.")
+@SeeAlso({ StartNuxeoWorkflow.class })
+@ReadsAttributes({ @ReadsAttribute(attribute = "", description = "") })
+@WritesAttributes({ @WritesAttribute(attribute = NuxeoAttributes.DOC_ID, description = "Document ID") })
+public class NuxeoOperation extends AbstractNuxeoOperationProcessor {
+
+    public NuxeoOperation() {
+        super();
+    }
 
     @Override
     protected void init(final ProcessorInitializationContext context) {
         final List<PropertyDescriptor> descriptors = new ArrayList<PropertyDescriptor>();
         descriptors.add(NUXEO_CLIENT_SERVICE);
         descriptors.add(TARGET_REPO);
-        descriptors.add(TARGET_PATH);
+        descriptors.add(OPERATION_ID);
+        descriptors.add(SPLIT_RESPONSE);
         this.descriptors = Collections.unmodifiableList(descriptors);
 
         final Set<Relationship> relationships = new HashSet<Relationship>();
         relationships.add(REL_SUCCESS);
         relationships.add(REL_FAILURE);
+        relationships.add(REL_ORIGINAL);
         this.relationships = Collections.unmodifiableSet(relationships);
     }
 
@@ -75,25 +73,20 @@ public class GetNuxeoDocument extends AbstractNuxeoProcessor {
             return;
         }
 
-        try {
-            // Invoke document operation
-            Document doc = getDocument(context, flowFile);
+        // Evaluate target operation
+        String opId = getArg(context, flowFile, OPERATION, OPERATION_ID);
 
-            // Convert and write to JSON
-            String json = this.nuxeoClient.getConverterFactory().writeJSON(doc);
-            try (OutputStream out = session.write(flowFile)) {
-                IOUtils.write(json, out, UTF8);
-            } catch (IOException e) {
-                session.putAttribute(flowFile, ERROR, e.getMessage());
-                session.transfer(flowFile, REL_FAILURE);
-                return;
-            }
-            session.putAttribute(flowFile, ENTITY_TYPE, doc.getEntityType());
-            session.putAttribute(flowFile, DOC_ID, doc.getId());
-            session.transfer(flowFile, REL_SUCCESS);
-        } catch (NuxeoClientException nce) {
-            session.putAttribute(flowFile, ERROR, nce.getMessage());
+        try {
+            NuxeoClient client = getClient(context);
+            Operation op = client.operation(opId);
+            enrichOperation(context, flowFile, op);
+            executeOperation(context, session, flowFile, op);
+            session.transfer(flowFile, REL_ORIGINAL);
+        } catch (Exception nce) {
+            getLogger().error("Unable to store document", nce);
+            session.putAttribute(flowFile, ERROR, String.valueOf(nce));
             session.transfer(flowFile, REL_FAILURE);
         }
     }
+
 }

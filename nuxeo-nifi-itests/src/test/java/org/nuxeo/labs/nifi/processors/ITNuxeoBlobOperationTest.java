@@ -19,15 +19,13 @@ package org.nuxeo.labs.nifi.processors;
 import java.util.HashMap;
 import java.util.Map;
 
-import org.apache.nifi.flowfile.FlowFile;
-import org.apache.nifi.util.FlowFileValidator;
+import org.apache.nifi.util.MockFlowFile;
 import org.apache.nifi.util.TestRunner;
 import org.apache.nifi.util.TestRunners;
-import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
 
-public class ITGetNuxeoBlobTest extends BaseTest {
+public class ITNuxeoBlobOperationTest extends BaseTest {
 
     private TestRunner testRunner;
 
@@ -35,11 +33,15 @@ public class ITGetNuxeoBlobTest extends BaseTest {
     public void init() throws Exception {
         initDocuments();
 
-        testRunner = TestRunners.newTestRunner(GetNuxeoBlob.class);
+        testRunner = TestRunners.newTestRunner(NuxeoBlobOperation.class);
         addController(testRunner);
 
-        testRunner.setProperty(GetNuxeoBlob.TARGET_PATH, "${nx-path}");
-        testRunner.setProperty(GetNuxeoBlob.NUXEO_CLIENT_SERVICE, "localhost");
+        testRunner.setProperty(NuxeoBlobOperation.TARGET_PATH, "${nxpath}");
+        testRunner.setProperty(NuxeoBlobOperation.OPERATION_ID, "Blob.Attach");
+        testRunner.setProperty(NuxeoBlobOperation.NUXEO_CLIENT_SERVICE, "localhost");
+        testRunner.setProperty("document", "${nx-path}");
+        testRunner.setProperty("xpath", "files:files");
+
     }
 
     @Test
@@ -47,20 +49,15 @@ public class ITGetNuxeoBlobTest extends BaseTest {
         Map<String, String> attributes = new HashMap<>();
         attributes.put("nx-path", FOLDER_2_FILE);
 
-        testRunner.enqueue("", attributes);
+        testRunner.enqueue("data", attributes);
         testRunner.run(1);
+        testRunner.assertTransferCount(NuxeoBlobOperation.REL_ORIGINAL, 1);
+        testRunner.assertTransferCount(NuxeoBlobOperation.REL_SUCCESS, 1);
+        testRunner.assertTransferCount(NuxeoBlobOperation.REL_FAILURE, 0);
 
-        testRunner.assertTransferCount(GetNuxeoBlob.REL_FAILURE, 0);
-        testRunner.assertTransferCount(GetNuxeoBlob.REL_SUCCESS, 1);
-        testRunner.assertTransferCount(GetNuxeoBlob.REL_ORIGINAL, 1);
-
-        testRunner.assertAllFlowFiles(GetNuxeoBlob.REL_SUCCESS, new FlowFileValidator() {
-
-            @Override
-            public void assertFlowFile(FlowFile f) {
-                Assert.assertEquals("Unexpected blob size", 1012L, f.getSize());
-            }
-        });
+        for (MockFlowFile mff : testRunner.getFlowFilesForRelationship(NuxeoBlobOperation.REL_SUCCESS)) {
+            System.out.println(new String(mff.toByteArray()));
+        }
     }
 
 }

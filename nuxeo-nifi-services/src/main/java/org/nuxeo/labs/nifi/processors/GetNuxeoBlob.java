@@ -17,6 +17,7 @@
 package org.nuxeo.labs.nifi.processors;
 
 import java.io.IOException;
+import java.io.InputStream;
 import java.io.OutputStream;
 import java.util.ArrayList;
 import java.util.Collections;
@@ -33,88 +34,99 @@ import org.apache.nifi.annotation.documentation.CapabilityDescription;
 import org.apache.nifi.annotation.documentation.SeeAlso;
 import org.apache.nifi.annotation.documentation.Tags;
 import org.apache.nifi.components.PropertyDescriptor;
+import org.apache.nifi.expression.ExpressionLanguageScope;
 import org.apache.nifi.flowfile.FlowFile;
 import org.apache.nifi.processor.ProcessContext;
 import org.apache.nifi.processor.ProcessSession;
 import org.apache.nifi.processor.ProcessorInitializationContext;
 import org.apache.nifi.processor.Relationship;
 import org.apache.nifi.processor.exception.ProcessException;
+import org.apache.nifi.processor.util.StandardValidators;
 import org.nuxeo.client.objects.Document;
+import org.nuxeo.client.objects.Repository;
 import org.nuxeo.client.objects.blob.StreamBlob;
 import org.nuxeo.client.spi.NuxeoClientException;
 
 @Tags({ "nuxeo", "get", "blob" })
 @CapabilityDescription("Retrieve the blob data from Nuxeo for a given document.")
-@SeeAlso({ PutNuxeoBlob.class })
+@SeeAlso({ NuxeoBlobOperation.class })
 @ReadsAttributes({
-		@ReadsAttribute(attribute = "nx-docid", description = "Document ID to use if the path isn't specified"),
-		@ReadsAttribute(attribute = "nx-path", description = "Path to use, nx-docid overrides") })
-@WritesAttributes({ @WritesAttribute(attribute = "nx-docid", description = "Added if not present"),
-		@WritesAttribute(attribute = "nx-error", description = "Error set if problem occurs") })
+        @ReadsAttribute(attribute = NuxeoAttributes.DOC_ID, description = "Document ID to use if the path isn't specified"),
+        @ReadsAttribute(attribute = NuxeoAttributes.PATH, description = "Path to use, nx-docid overrides"),
+        @ReadsAttribute(attribute = "nx-xpath", description = "X-Path to use, defaults to file:content") })
+@WritesAttributes({ @WritesAttribute(attribute = NuxeoAttributes.DOC_ID, description = "Added if not present"),
+        @WritesAttribute(attribute = "filename", description = "Filename of the blob"),
+        @WritesAttribute(attribute = NuxeoAttributes.ERROR, description = "Error set if problem occurs") })
 public class GetNuxeoBlob extends AbstractNuxeoProcessor {
 
-	private List<PropertyDescriptor> descriptors;
+    public static final PropertyDescriptor XPATH = new PropertyDescriptor.Builder().name("XPATH")
+                                                                                   .displayName("Property X-Path")
+                                                                                   .description(
+                                                                                           "Document x-path property to retrieve.")
+                                                                                   .expressionLanguageSupported(
+                                                                                           ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
+                                                                                   .defaultValue(
+                                                                                           Document.DEFAULT_FILE_CONTENT)
+                                                                                   .required(false)
+                                                                                   .addValidator(
+                                                                                           StandardValidators.NON_BLANK_VALIDATOR)
+                                                                                   .build();
 
-	private Set<Relationship> relationships;
+    @Override
+    protected void init(final ProcessorInitializationContext context) {
+        final List<PropertyDescriptor> descriptors = new ArrayList<PropertyDescriptor>();
+        descriptors.add(NUXEO_CLIENT_SERVICE);
+        descriptors.add(TARGET_REPO);
+        descriptors.add(TARGET_PATH);
+        descriptors.add(XPATH);
+        this.descriptors = Collections.unmodifiableList(descriptors);
 
-	@Override
-	protected void init(final ProcessorInitializationContext context) {
-		final List<PropertyDescriptor> descriptors = new ArrayList<PropertyDescriptor>();
-		descriptors.add(NUXEO_CLIENT_SERVICE);
-		descriptors.add(TARGET_REPO);
-		descriptors.add(TARGET_PATH);
-		this.descriptors = Collections.unmodifiableList(descriptors);
+        final Set<Relationship> relationships = new HashSet<Relationship>();
+        relationships.add(REL_SUCCESS);
+        relationships.add(REL_ORIGINAL);
+        relationships.add(REL_FAILURE);
+        this.relationships = Collections.unmodifiableSet(relationships);
+    }
 
-		final Set<Relationship> relationships = new HashSet<Relationship>();
-		relationships.add(REL_SUCCESS);
-		relationships.add(REL_ORIGINAL);
-		relationships.add(REL_FAILURE);
-		this.relationships = Collections.unmodifiableSet(relationships);
-	}
+    @Override
+    public void onTrigger(final ProcessContext context, final ProcessSession session) throws ProcessException {
+        FlowFile flowFile = session.get();
+        if (flowFile == null) {
+            return;
+        }
 
-	@Override
-	public Set<Relationship> getRelationships() {
-		return this.relationships;
-	}
+        // Get target blob
+        String xpath = getArg(context, flowFile, "nx-xpath", XPATH);
+        String docId = getArg(context, flowFile, DOC_ID, null);
+        String path = getArg(context, flowFile, PATH, TARGET_PATH);
 
-	@Override
-	public final List<PropertyDescriptor> getSupportedPropertyDescriptors() {
-		return descriptors;
-	}
+        // Create success path
+        FlowFile blobFile = session.create(flowFile);
+        try {
+            // Invoke document operation
+            Repository rep = getRepository(context);
+            StreamBlob blob = docId != null ? rep.streamBlobById(docId, xpath) : rep.streamBlobByPath(path, xpath);
 
-	@Override
-	public void onTrigger(final ProcessContext context, final ProcessSession session) throws ProcessException {
-		FlowFile flowFile = session.get();
-		if (flowFile == null) {
-			return;
-		}
+            // Write to flowfile
+            try (InputStream in = blob.getStream(); OutputStream out = session.write(blobFile)) {
+                IOUtils.copy(in, out);
+            } catch (IOException e) {
+                throw new NuxeoClientException(e.getMessage(), e);
+            }
+            session.putAttribute(blobFile, "filename", blob.getFilename());
+            session.putAttribute(blobFile, "mime.type", blob.getMimeType());
 
-		// Evaluate target path
-		FlowFile blobFile = session.create(flowFile);
-		try {
-			// Invoke document operation
-			Document doc = getDocument(context, flowFile);
-			StreamBlob blob = doc.streamBlob();
+            session.putAttribute(blobFile, "nx-xpath", xpath);
+            session.transfer(blobFile, REL_SUCCESS);
+        } catch (NuxeoClientException nce) {
+            session.remove(blobFile);
 
-			// Write to flowfile
-			try (OutputStream out = session.write(blobFile)) {
-				IOUtils.copy(blob.getStream(), out);
-			} catch (IOException e) {
-				session.putAttribute(blobFile, "nx-error", e.getMessage());
-				session.transfer(blobFile, REL_FAILURE);
-				return;
-			}
-			session.putAttribute(blobFile, "nx-docid", doc.getId());
-			session.transfer(blobFile, REL_SUCCESS);
-		} catch (NuxeoClientException nce) {
-			session.remove(blobFile);
+            getLogger().error("Unable to retrieve blob", nce);
+            session.putAttribute(flowFile, ERROR, String.valueOf(nce));
+            session.transfer(flowFile, REL_FAILURE);
+            return;
+        }
 
-			getLogger().error("Unable to retrieve blob", nce);
-			session.putAttribute(flowFile, "nx-error", String.valueOf(nce));
-			session.transfer(flowFile, REL_FAILURE);
-			return;
-		}
-
-		session.transfer(flowFile, REL_ORIGINAL);
-	}
+        session.transfer(flowFile, REL_ORIGINAL);
+    }
 }
