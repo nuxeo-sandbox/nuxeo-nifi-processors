@@ -44,6 +44,7 @@ import org.apache.nifi.processor.exception.ProcessException;
 import org.nuxeo.client.objects.Document;
 import org.nuxeo.client.objects.EntityTypes;
 import org.nuxeo.client.spi.NuxeoClientException;
+import org.nuxeo.client.util.DocumentPath;
 
 @Tags({ "nuxeo", "document", "attributes" })
 @CapabilityDescription("Extract properties from a Nuxeo Document and set them as FlowFile attributes.")
@@ -95,13 +96,16 @@ public class NuxeoDocumentToAttributes extends AbstractNuxeoDynamicProcessor {
             }
 
             if (this.dynamicProperties != null && !this.dynamicProperties.isEmpty()) {
+                DocumentPath path = new DocumentPath(doc);
                 for (PropertyDescriptor desc : this.dynamicProperties) {
                     // Map the Document properties
                     String key = desc.getName();
                     String item = getArg(context, flowFile, null, desc);
-                    Object val = doc.getPropertyValue(item);
+                    Object val = path.evaluate(item);
                     if (val != null) {
                         session.putAttribute(flowFile, key, val.toString());
+                    } else {
+                        getLogger().warn("No matching property: " + item);
                     }
                 }
             } else {
