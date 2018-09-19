@@ -21,10 +21,19 @@ public class DocumentPath {
     public DocumentPath(Document doc) {
         super();
         this.doc = doc;
+        if (this.doc == null) {
+            throw new NullPointerException("missing doc");
+        }
     }
 
     @SuppressWarnings("unchecked")
     public <T> T evaluate(String xpath) {
+        if (xpath == null) {
+            throw new NullPointerException("missing xpath");
+        }
+        if ("".equals(xpath.trim())) {
+            return null;
+        }
         Object ref = this.doc;
         try (Scanner scan = new Scanner(xpath)) {
             scan.useDelimiter("/");

@@ -14,7 +14,7 @@ import org.nuxeo.client.objects.Document;
 public class DocumentPathTest {
 
     private Document doc;
-    
+
     private Object[] files;
 
     @Before
@@ -49,6 +49,9 @@ public class DocumentPathTest {
 
     @Test
     public void testDocumentPath() {
+        test("", null);
+        test(" \t\n", null);
+        test(".", this.doc);
         test("id", this.doc.getId());
         test("name", this.doc.getName());
         test("locked", this.doc.isLocked());
@@ -89,6 +92,16 @@ public class DocumentPathTest {
     public void testInvalidPaths() {
         test("properties/sample:int/test:int", 42);
         test("sample:int/nested:int", 42);
+    }
+
+    @Test(expected = NullPointerException.class)
+    public void testMissingDoc() {
+        DocumentPath.evaluate(null, "");
+    }
+
+    @Test(expected = NullPointerException.class)
+    public void testMissingPath() {
+        DocumentPath.evaluate(this.doc, null);
     }
 
 }
