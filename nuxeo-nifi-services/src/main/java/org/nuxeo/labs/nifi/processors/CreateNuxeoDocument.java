@@ -45,29 +45,29 @@ import org.nuxeo.client.spi.NuxeoClientException;
 @CapabilityDescription("Create a Nuxeo Document in the repository.")
 @SeeAlso({ GetNuxeoDocument.class })
 @ReadsAttributes({ @ReadsAttribute(attribute = "", description = "") })
-@WritesAttributes({ @WritesAttribute(attribute = NuxeoAttributes.DOC_ID, description = "Document ID") })
+@WritesAttributes({ @WritesAttribute(attribute = NuxeoAttributes.VAR_DOC_ID, description = "Document ID") })
 public class CreateNuxeoDocument extends AbstractNuxeoDynamicProcessor {
 
-    public static final PropertyDescriptor TARGET_NAME = new PropertyDescriptor.Builder().name("TARGET_NAME")
-                                                                                         .displayName("Target Name")
-                                                                                         .description(
-                                                                                                 "Target Name to use.")
-                                                                                         .expressionLanguageSupported(
-                                                                                                 ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
-                                                                                         .required(true)
-                                                                                         .addValidator(
-                                                                                                 StandardValidators.NON_BLANK_VALIDATOR)
-                                                                                         .build();
+    public static final PropertyDescriptor DOC_NAME = new PropertyDescriptor.Builder().name("DOC_NAME")
+                                                                                      .displayName("Document Name")
+                                                                                      .description(
+                                                                                              "Document Name to use.")
+                                                                                      .expressionLanguageSupported(
+                                                                                              ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
+                                                                                      .required(true)
+                                                                                      .addValidator(
+                                                                                              StandardValidators.NON_BLANK_VALIDATOR)
+                                                                                      .build();
 
     @Override
     protected void init(final ProcessorInitializationContext context) {
         final List<PropertyDescriptor> descriptors = new ArrayList<PropertyDescriptor>();
         descriptors.add(NUXEO_CLIENT_SERVICE);
         descriptors.add(TARGET_REPO);
-        descriptors.add(TARGET_PATH);
-        descriptors.add(TARGET_NAME);
-        descriptors.add(TARGET_TYPE);
-        descriptors.add(TARGET_TITLE);
+        descriptors.add(DOC_PATH);
+        descriptors.add(DOC_NAME);
+        descriptors.add(DOC_TYPE);
+        descriptors.add(DOC_TITLE);
         this.descriptors = Collections.unmodifiableList(descriptors);
 
         final Set<Relationship> relationships = new HashSet<Relationship>();
@@ -92,10 +92,10 @@ public class CreateNuxeoDocument extends AbstractNuxeoDynamicProcessor {
         }
 
         // Evaluate target path
-        String path = getArg(context, flowFile, PATH, TARGET_PATH);
-        String name = getArg(context, flowFile, "nx-name", TARGET_NAME);
-        String type = getArg(context, flowFile, "nx-type", TARGET_TYPE);
-        String title = getArg(context, flowFile, "nx-title", TARGET_TITLE);
+        String path = getArg(context, flowFile, VAR_PATH, DOC_PATH);
+        String name = getArg(context, flowFile, VAR_NAME, DOC_NAME);
+        String type = getArg(context, flowFile, VAR_TYPE, DOC_TYPE);
+        String title = getArg(context, flowFile, VAR_TITLE, DOC_TITLE);
         if (title == null) {
             title = name;
         }
@@ -116,12 +116,12 @@ public class CreateNuxeoDocument extends AbstractNuxeoDynamicProcessor {
             // Create document
             doc = getRepository(context).createDocumentByPath(path, doc);
 
-            session.putAttribute(flowFile, ENTITY_TYPE, doc.getEntityType());
-            session.putAttribute(flowFile, DOC_ID, doc.getId());
+            session.putAttribute(flowFile, VAR_ENTITY_TYPE, doc.getEntityType());
+            session.putAttribute(flowFile, VAR_DOC_ID, doc.getId());
             session.transfer(flowFile, REL_SUCCESS);
         } catch (NuxeoClientException nce) {
             getLogger().error("Unable to store document", nce);
-            session.putAttribute(flowFile, ERROR, String.valueOf(nce));
+            session.putAttribute(flowFile, VAR_ERROR, String.valueOf(nce));
             session.transfer(flowFile, REL_FAILURE);
         }
     }

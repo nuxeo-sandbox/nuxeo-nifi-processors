@@ -49,11 +49,11 @@ import org.nuxeo.client.spi.NuxeoClientException;
 @CapabilityDescription("Get the children documents of a given folderish path.")
 @SeeAlso({ GetNuxeoDocument.class })
 @ReadsAttributes({
-        @ReadsAttribute(attribute = NuxeoAttributes.DOC_ID, description = "Document ID to use if the path isn't specified"),
-        @ReadsAttribute(attribute = NuxeoAttributes.PATH, description = "Path to use, nx-docid overrides") })
+        @ReadsAttribute(attribute = NuxeoAttributes.VAR_DOC_ID, description = "Document ID to use if the path isn't specified"),
+        @ReadsAttribute(attribute = NuxeoAttributes.VAR_PATH, description = "Path to use, nx-docid overrides") })
 @WritesAttributes({
-        @WritesAttribute(attribute = NuxeoAttributes.DOC_ID, description = "Added for each document retreived"),
-        @WritesAttribute(attribute = NuxeoAttributes.ERROR, description = "Error set if problem occurs") })
+        @WritesAttribute(attribute = NuxeoAttributes.VAR_DOC_ID, description = "Added for each document retreived"),
+        @WritesAttribute(attribute = NuxeoAttributes.VAR_ERROR, description = "Error set if problem occurs") })
 @TriggerWhenEmpty
 public class GetNuxeoChildren extends AbstractNuxeoProcessor {
 
@@ -62,7 +62,7 @@ public class GetNuxeoChildren extends AbstractNuxeoProcessor {
         final List<PropertyDescriptor> descriptors = new ArrayList<PropertyDescriptor>();
         descriptors.add(NUXEO_CLIENT_SERVICE);
         descriptors.add(TARGET_REPO);
-        descriptors.add(TARGET_PATH);
+        descriptors.add(DOC_PATH);
         this.descriptors = Collections.unmodifiableList(descriptors);
 
         final Set<Relationship> relationships = new HashSet<Relationship>();
@@ -80,8 +80,8 @@ public class GetNuxeoChildren extends AbstractNuxeoProcessor {
         }
 
         // Get target path
-        String docId = getArg(context, flowFile, DOC_ID, null);
-        String path = getArg(context, flowFile, PATH, TARGET_PATH);
+        String docId = getArg(context, flowFile, VAR_DOC_ID, null);
+        String path = getArg(context, flowFile, VAR_PATH, DOC_PATH);
 
         try {
             // Invoke document operation
@@ -99,12 +99,12 @@ public class GetNuxeoChildren extends AbstractNuxeoProcessor {
                 } catch (IOException e) {
                     continue;
                 }
-                session.putAttribute(childFlow, ENTITY_TYPE, doc.getEntityType());
-                session.putAttribute(childFlow, DOC_ID, doc.getId());
+                session.putAttribute(childFlow, VAR_ENTITY_TYPE, doc.getEntityType());
+                session.putAttribute(childFlow, VAR_DOC_ID, doc.getId());
                 session.transfer(childFlow, REL_SUCCESS);
             }
         } catch (NuxeoClientException nce) {
-            session.putAttribute(flowFile, ERROR, nce.getMessage());
+            session.putAttribute(flowFile, VAR_ERROR, nce.getMessage());
             session.transfer(flowFile, REL_FAILURE);
             return;
         }

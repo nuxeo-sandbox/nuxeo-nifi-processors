@@ -38,7 +38,7 @@ public class ITGetNuxeoBlobTest extends BaseTest {
         testRunner = TestRunners.newTestRunner(GetNuxeoBlob.class);
         addController(testRunner);
 
-        testRunner.setProperty(GetNuxeoBlob.TARGET_PATH, "${nx-path}");
+        testRunner.setProperty(GetNuxeoBlob.DOC_PATH, "${nx-path}");
         testRunner.setProperty(GetNuxeoBlob.NUXEO_CLIENT_SERVICE, "localhost");
     }
 

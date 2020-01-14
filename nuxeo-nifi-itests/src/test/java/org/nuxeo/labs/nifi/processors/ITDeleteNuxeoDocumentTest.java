@@ -35,7 +35,7 @@ public class ITDeleteNuxeoDocumentTest extends BaseTest {
         testRunner = TestRunners.newTestRunner(DeleteNuxeoDocument.class);
         addController(testRunner);
 
-        testRunner.setProperty(DeleteNuxeoDocument.TARGET_PATH, "${nxpath}");
+        testRunner.setProperty(DeleteNuxeoDocument.DOC_PATH, "${nxpath}");
         testRunner.setProperty(DeleteNuxeoDocument.NUXEO_CLIENT_SERVICE, "localhost");
         testRunner.setProperty(DeleteNuxeoDocument.TRASH_DOCUMENT, "true");
 

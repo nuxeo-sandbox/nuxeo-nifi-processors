@@ -50,7 +50,7 @@ import org.nuxeo.client.spi.NuxeoClientException;
         @ReadsAttribute(attribute = "nx-path", description = "Path to use, nx-docid overrides") })
 @WritesAttributes({
         @WritesAttribute(attribute = "nx-workflow-id", description = "ID of workflow that has been started."),
-        @WritesAttribute(attribute = NuxeoAttributes.ERROR, description = "Error set if problem occurs") })
+        @WritesAttribute(attribute = NuxeoAttributes.VAR_ERROR, description = "Error set if problem occurs") })
 public class StartNuxeoWorkflow extends AbstractNuxeoProcessor {
 
     public static final PropertyDescriptor WORKFLOW = new PropertyDescriptor.Builder().name("WORKFLOW")
@@ -67,7 +67,7 @@ public class StartNuxeoWorkflow extends AbstractNuxeoProcessor {
         final List<PropertyDescriptor> descriptors = new ArrayList<PropertyDescriptor>();
         descriptors.add(NUXEO_CLIENT_SERVICE);
         descriptors.add(TARGET_REPO);
-        descriptors.add(TARGET_PATH);
+        descriptors.add(DOC_PATH);
         descriptors.add(WORKFLOW);
         this.descriptors = Collections.unmodifiableList(descriptors);
 
@@ -86,8 +86,8 @@ public class StartNuxeoWorkflow extends AbstractNuxeoProcessor {
 
         // Evaluate target path
         String workflowName = getArg(context, flowFile, "nx-workflow", WORKFLOW);
-        String docId = getArg(context, flowFile, DOC_ID, null);
-        String path = getArg(context, flowFile, PATH, TARGET_PATH);
+        String docId = getArg(context, flowFile, VAR_DOC_ID, null);
+        String path = getArg(context, flowFile, VAR_PATH, DOC_PATH);
 
         try {
             // Invoke document operation
@@ -101,7 +101,7 @@ public class StartNuxeoWorkflow extends AbstractNuxeoProcessor {
             session.transfer(flowFile, REL_SUCCESS);
         } catch (NuxeoClientException nce) {
             getLogger().warn("Unable to start workflow: " + workflowName, nce);
-            session.putAttribute(flowFile, ERROR, nce.getMessage());
+            session.putAttribute(flowFile, VAR_ERROR, nce.getMessage());
             session.transfer(flowFile, REL_FAILURE);
         }
     }

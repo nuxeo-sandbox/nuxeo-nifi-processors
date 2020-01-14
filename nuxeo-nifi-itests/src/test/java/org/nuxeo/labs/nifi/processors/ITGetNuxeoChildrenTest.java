@@ -34,7 +34,7 @@ public class ITGetNuxeoChildrenTest extends BaseTest {
         testRunner = TestRunners.newTestRunner(GetNuxeoChildren.class);
         addController(testRunner);
 
-        testRunner.setProperty(GetNuxeoChildren.TARGET_PATH, "${nxpath}");
+        testRunner.setProperty(GetNuxeoChildren.DOC_PATH, "${nxpath}");
         testRunner.setProperty(GetNuxeoChildren.NUXEO_CLIENT_SERVICE, "localhost");
     }
 

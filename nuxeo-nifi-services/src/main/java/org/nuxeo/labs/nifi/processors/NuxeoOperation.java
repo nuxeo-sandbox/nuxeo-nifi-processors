@@ -43,7 +43,7 @@ import org.nuxeo.client.objects.Operation;
 @CapabilityDescription("Execute an operation in Nuxeo.")
 @SeeAlso({ StartNuxeoWorkflow.class })
 @ReadsAttributes({ @ReadsAttribute(attribute = "", description = "") })
-@WritesAttributes({ @WritesAttribute(attribute = NuxeoAttributes.DOC_ID, description = "Document ID") })
+@WritesAttributes({ @WritesAttribute(attribute = NuxeoAttributes.VAR_DOC_ID, description = "Document ID") })
 public class NuxeoOperation extends AbstractNuxeoOperationProcessor {
 
     public NuxeoOperation() {
@@ -74,7 +74,7 @@ public class NuxeoOperation extends AbstractNuxeoOperationProcessor {
         }
 
         // Evaluate target operation
-        String opId = getArg(context, flowFile, OPERATION, OPERATION_ID);
+        String opId = getArg(context, flowFile, VAR_OPERATION, OPERATION_ID);
 
         try {
             NuxeoClient client = getClient(context);
@@ -84,7 +84,7 @@ public class NuxeoOperation extends AbstractNuxeoOperationProcessor {
             session.transfer(flowFile, REL_ORIGINAL);
         } catch (Exception nce) {
             getLogger().error("Unable to store document", nce);
-            session.putAttribute(flowFile, ERROR, String.valueOf(nce));
+            session.putAttribute(flowFile, VAR_ERROR, String.valueOf(nce));
             session.transfer(flowFile, REL_FAILURE);
         }
     }

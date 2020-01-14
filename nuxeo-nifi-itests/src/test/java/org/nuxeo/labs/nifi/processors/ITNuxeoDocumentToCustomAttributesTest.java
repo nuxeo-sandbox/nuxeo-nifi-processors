@@ -35,7 +35,7 @@ public class ITNuxeoDocumentToCustomAttributesTest extends BaseTest {
         testRunner = TestRunners.newTestRunner(NuxeoDocumentToAttributes.class);
         addController(testRunner);
 
-        testRunner.setProperty(NuxeoDocumentToAttributes.TARGET_PATH, "${nxpath}");
+        testRunner.setProperty(NuxeoDocumentToAttributes.DOC_PATH, "${nxpath}");
         testRunner.setProperty(NuxeoDocumentToAttributes.NUXEO_CLIENT_SERVICE, "localhost");
         testRunner.setProperty("title_prop", "dc:title");
     }

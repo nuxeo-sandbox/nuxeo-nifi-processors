@@ -36,7 +36,7 @@ public class ITNuxeoBlobOperationTest extends BaseTest {
         testRunner = TestRunners.newTestRunner(NuxeoBlobOperation.class);
         addController(testRunner);
 
-        testRunner.setProperty(NuxeoBlobOperation.TARGET_PATH, "${nxpath}");
+        testRunner.setProperty(NuxeoBlobOperation.DOC_PATH, "${nxpath}");
         testRunner.setProperty(NuxeoBlobOperation.OPERATION_ID, "Blob.Attach");
         testRunner.setProperty(NuxeoBlobOperation.NUXEO_CLIENT_SERVICE, "localhost");
         testRunner.setProperty("document", "${nx-path}");

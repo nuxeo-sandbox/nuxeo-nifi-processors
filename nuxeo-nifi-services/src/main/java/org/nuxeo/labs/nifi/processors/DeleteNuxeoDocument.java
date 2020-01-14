@@ -45,14 +45,14 @@ import org.nuxeo.client.objects.Repository;
 import org.nuxeo.client.spi.NuxeoClientException;
 
 @Tags({ "nuxeo", "delete", "document" })
-@CapabilityDescription("Remvoe a document from Nuxeo.")
+@CapabilityDescription("Remove a document from Nuxeo.")
 @SeeAlso({ GetNuxeoDocument.class, GetNuxeoBlob.class })
 @ReadsAttributes({
-        @ReadsAttribute(attribute = NuxeoAttributes.DOC_ID, description = "Document ID to use if the path isn't specified"),
-        @ReadsAttribute(attribute = NuxeoAttributes.PATH, description = "Path to use, nx-docid overrides") })
+        @ReadsAttribute(attribute = NuxeoAttributes.VAR_DOC_ID, description = "Document ID to use if the path isn't specified"),
+        @ReadsAttribute(attribute = NuxeoAttributes.VAR_PATH, description = "Path to use, nx-docid overrides") })
 @WritesAttributes({
-        @WritesAttribute(attribute = NuxeoAttributes.DOC_ID, description = "Added for each document deleted"),
-        @WritesAttribute(attribute = NuxeoAttributes.ERROR, description = "Error set if problem occurs") })
+        @WritesAttribute(attribute = NuxeoAttributes.VAR_DOC_ID, description = "Added for each document deleted"),
+        @WritesAttribute(attribute = NuxeoAttributes.VAR_ERROR, description = "Error set if problem occurs") })
 public class DeleteNuxeoDocument extends AbstractNuxeoProcessor {
 
     public static final PropertyDescriptor TRASH_DOCUMENT = new PropertyDescriptor.Builder().name("TRASH_DOCUMENT")
@@ -72,7 +72,7 @@ public class DeleteNuxeoDocument extends AbstractNuxeoProcessor {
         final List<PropertyDescriptor> descriptors = new ArrayList<PropertyDescriptor>();
         descriptors.add(NUXEO_CLIENT_SERVICE);
         descriptors.add(TARGET_REPO);
-        descriptors.add(TARGET_PATH);
+        descriptors.add(DOC_PATH);
         descriptors.add(TRASH_DOCUMENT);
         this.descriptors = Collections.unmodifiableList(descriptors);
 
@@ -95,7 +95,7 @@ public class DeleteNuxeoDocument extends AbstractNuxeoProcessor {
             // Invoke document operation
             Document doc = getDocument(context, flowFile);
             Repository rep = getRepository(context);
-            session.putAttribute(flowFile, DOC_ID, doc.getId());
+            session.putAttribute(flowFile, VAR_DOC_ID, doc.getId());
 
             if (useTrash) {
                 doc = doc.trash();
@@ -105,7 +105,7 @@ public class DeleteNuxeoDocument extends AbstractNuxeoProcessor {
                 try (OutputStream out = session.write(flowFile)) {
                     IOUtils.write(json, out, UTF8);
                 } catch (IOException e) {
-                    session.putAttribute(flowFile, ERROR, e.getMessage());
+                    session.putAttribute(flowFile, VAR_ERROR, e.getMessage());
                     session.transfer(flowFile, REL_FAILURE);
                     return;
                 }
@@ -117,7 +117,7 @@ public class DeleteNuxeoDocument extends AbstractNuxeoProcessor {
 
             session.transfer(flowFile, REL_SUCCESS);
         } catch (NuxeoClientException nce) {
-            session.putAttribute(flowFile, ERROR, nce.getMessage());
+            session.putAttribute(flowFile, VAR_ERROR, nce.getMessage());
             session.transfer(flowFile, REL_FAILURE);
         }
     }

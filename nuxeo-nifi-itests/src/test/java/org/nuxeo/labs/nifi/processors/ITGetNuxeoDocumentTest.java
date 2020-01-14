@@ -33,7 +33,7 @@ public class ITGetNuxeoDocumentTest extends BaseTest {
         testRunner = TestRunners.newTestRunner(GetNuxeoDocument.class);
         addController(testRunner);
 
-        testRunner.setProperty(GetNuxeoDocument.TARGET_PATH, "${nxpath}");
+        testRunner.setProperty(GetNuxeoDocument.DOC_PATH, "${nxpath}");
         testRunner.setProperty(GetNuxeoDocument.NUXEO_CLIENT_SERVICE, "localhost");
     }
 

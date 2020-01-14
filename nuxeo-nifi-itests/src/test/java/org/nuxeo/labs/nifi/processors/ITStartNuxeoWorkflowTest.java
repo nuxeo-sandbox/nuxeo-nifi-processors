@@ -33,7 +33,7 @@ public class ITStartNuxeoWorkflowTest extends BaseTest {
         testRunner = TestRunners.newTestRunner(StartNuxeoWorkflow.class);
         addController(testRunner);
 
-        testRunner.setProperty(StartNuxeoWorkflow.TARGET_PATH, "${nxpath}");
+        testRunner.setProperty(StartNuxeoWorkflow.DOC_PATH, "${nxpath}");
         testRunner.setProperty(StartNuxeoWorkflow.WORKFLOW, "SerialDocumentReview");
         testRunner.setProperty(StartNuxeoWorkflow.NUXEO_CLIENT_SERVICE, "localhost");
     }

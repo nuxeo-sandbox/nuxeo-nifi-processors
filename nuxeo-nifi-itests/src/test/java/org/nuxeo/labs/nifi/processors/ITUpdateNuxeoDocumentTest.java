@@ -38,7 +38,7 @@ public class ITUpdateNuxeoDocumentTest extends BaseTest {
         testRunner = TestRunners.newTestRunner(UpdateNuxeoDocument.class);
         addController(testRunner);
 
-        testRunner.setProperty(UpdateNuxeoDocument.TARGET_PATH, "${nxpath}");
+        testRunner.setProperty(UpdateNuxeoDocument.DOC_PATH, "${nxpath}");
         testRunner.setProperty(UpdateNuxeoDocument.NUXEO_CLIENT_SERVICE, "localhost");
         testRunner.setProperty("dc:nature", "memo");
     }

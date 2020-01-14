@@ -46,7 +46,7 @@ import org.nuxeo.client.spi.NuxeoClientException;
 @CapabilityDescription("Update a Nuxeo Document in the repository.")
 @SeeAlso({ GetNuxeoDocument.class })
 @ReadsAttributes({ @ReadsAttribute(attribute = "", description = "") })
-@WritesAttributes({ @WritesAttribute(attribute = NuxeoAttributes.DOC_ID, description = "Document ID") })
+@WritesAttributes({ @WritesAttribute(attribute = NuxeoAttributes.VAR_DOC_ID, description = "Document ID") })
 public class UpdateNuxeoDocument extends AbstractNuxeoDynamicProcessor {
 
     @Override
@@ -54,7 +54,7 @@ public class UpdateNuxeoDocument extends AbstractNuxeoDynamicProcessor {
         final List<PropertyDescriptor> descriptors = new ArrayList<PropertyDescriptor>();
         descriptors.add(NUXEO_CLIENT_SERVICE);
         descriptors.add(TARGET_REPO);
-        descriptors.add(TARGET_PATH);
+        descriptors.add(DOC_PATH);
         this.descriptors = Collections.unmodifiableList(descriptors);
 
         final Set<Relationship> relationships = new HashSet<Relationship>();
@@ -82,7 +82,7 @@ public class UpdateNuxeoDocument extends AbstractNuxeoDynamicProcessor {
             Document doc = null;
 
             // Try to load from existing context
-            String entityType = flowFile.getAttribute(ENTITY_TYPE);
+            String entityType = flowFile.getAttribute(VAR_ENTITY_TYPE);
             if (EntityTypes.DOCUMENT.equals(entityType)) {
                 try (InputStream in = session.read(flowFile)) {
                     String json = IOUtils.toString(in, UTF8);
@@ -110,12 +110,12 @@ public class UpdateNuxeoDocument extends AbstractNuxeoDynamicProcessor {
             // Update the document
             doc = doc.updateDocument();
 
-            session.putAttribute(flowFile, ENTITY_TYPE, doc.getEntityType());
-            session.putAttribute(flowFile, DOC_ID, doc.getId());
+            session.putAttribute(flowFile, VAR_ENTITY_TYPE, doc.getEntityType());
+            session.putAttribute(flowFile, VAR_DOC_ID, doc.getId());
             session.transfer(flowFile, REL_SUCCESS);
         } catch (NuxeoClientException nce) {
             getLogger().error("Unable to store document", nce);
-            session.putAttribute(flowFile, ERROR, String.valueOf(nce));
+            session.putAttribute(flowFile, VAR_ERROR, String.valueOf(nce));
             session.transfer(flowFile, REL_FAILURE);
         }
     }

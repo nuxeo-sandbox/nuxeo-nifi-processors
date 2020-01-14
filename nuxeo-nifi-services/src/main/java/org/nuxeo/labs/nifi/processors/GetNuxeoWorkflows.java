@@ -47,10 +47,10 @@ import org.nuxeo.client.spi.NuxeoClientException;
 @CapabilityDescription("Get active workflows for documents within Nuxeo.")
 @SeeAlso({ StartNuxeoWorkflow.class })
 @ReadsAttributes({
-        @ReadsAttribute(attribute = "nx-docid", description = "Document ID to use if the path isn't specified"),
-        @ReadsAttribute(attribute = "nx-path", description = "Path to use, nx-docid overrides") })
+        @ReadsAttribute(attribute = NuxeoAttributes.VAR_DOC_ID, description = "Document ID to use if the path isn't specified"),
+        @ReadsAttribute(attribute = NuxeoAttributes.VAR_PATH, description = "Path to use, nx-docid overrides") })
 @WritesAttributes({ @WritesAttribute(attribute = "nx-workflow-id", description = "ID of document workflow instance."),
-        @WritesAttribute(attribute = NuxeoAttributes.ERROR, description = "Error set if problem occurs") })
+        @WritesAttribute(attribute = NuxeoAttributes.VAR_ERROR, description = "Error set if problem occurs") })
 public class GetNuxeoWorkflows extends AbstractNuxeoProcessor {
 
     @Override
@@ -58,7 +58,7 @@ public class GetNuxeoWorkflows extends AbstractNuxeoProcessor {
         final List<PropertyDescriptor> descriptors = new ArrayList<PropertyDescriptor>();
         descriptors.add(NUXEO_CLIENT_SERVICE);
         descriptors.add(TARGET_REPO);
-        descriptors.add(TARGET_PATH);
+        descriptors.add(DOC_PATH);
         this.descriptors = Collections.unmodifiableList(descriptors);
 
         final Set<Relationship> relationships = new HashSet<Relationship>();
@@ -79,7 +79,7 @@ public class GetNuxeoWorkflows extends AbstractNuxeoProcessor {
             Workflows wfs = getDocument(context, flowFile).fetchWorkflowInstances();
 
             // Write documents to flowfile
-            for (Workflow wf : wfs.getWorkflows()) {
+            for (Workflow wf : wfs) {
                 FlowFile childFlow = session.create(flowFile);
 
                 // Convert and write to JSON
@@ -89,12 +89,12 @@ public class GetNuxeoWorkflows extends AbstractNuxeoProcessor {
                 } catch (IOException e) {
                     continue;
                 }
-                session.putAttribute(childFlow, ENTITY_TYPE, wf.getEntityType());
+                session.putAttribute(childFlow, VAR_ENTITY_TYPE, wf.getEntityType());
                 session.putAttribute(childFlow, "nx-workflow-id", wf.getId());
                 session.transfer(childFlow, REL_SUCCESS);
             }
         } catch (NuxeoClientException nce) {
-            session.putAttribute(flowFile, ERROR, nce.getMessage());
+            session.putAttribute(flowFile, VAR_ERROR, nce.getMessage());
             session.transfer(flowFile, REL_FAILURE);
         }
     }

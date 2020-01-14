@@ -81,6 +81,10 @@ public abstract class AbstractNuxeoOperationProcessor extends AbstractNuxeoDynam
 
     protected void executeOperation(ProcessContext ctx, ProcessSession session, FlowFile ff, Operation op) {
         Object obj = op.execute();
+        if (obj == null) {
+            getLogger().debug("No response from operation: " + op.getOperationId());
+            return;
+        }
         if (this.splitResponse && obj instanceof PaginableEntity<?>) {
             @SuppressWarnings("unchecked")
             PaginableEntity<Object> page = (PaginableEntity<Object>) obj;
@@ -97,6 +101,15 @@ public abstract class AbstractNuxeoOperationProcessor extends AbstractNuxeoDynam
             sendBlob(ctx, session, ff, blob);
         } else if (obj instanceof Entity || obj instanceof RepositoryEntity<?, ?>) {
             sendDocument(ctx, session, ff, obj);
+        } else if (obj instanceof String) {
+            String data = obj.toString();
+            FlowFile childFlow = session.create(ff);
+            try (OutputStream out = session.write(childFlow)) {
+                IOUtils.write(data, out, UTF8);
+            } catch (IOException e) {
+                return;
+            }
+            session.transfer(childFlow, REL_SUCCESS);
         } else if (obj != null) {
             getLogger().warn("Unknown object: " + obj + ", type: " + obj.getClass());
         }
@@ -116,21 +129,21 @@ public abstract class AbstractNuxeoOperationProcessor extends AbstractNuxeoDynam
         try {
             Method type = doc.getClass().getMethod("getEntityType");
             String entity = (String) type.invoke(doc);
-            session.putAttribute(childFlow, ENTITY_TYPE, entity);
+            session.putAttribute(childFlow, VAR_ENTITY_TYPE, entity);
         } catch (Exception ex) {
             getLogger().error("No entity type", ex);
         }
         session.transfer(childFlow, REL_SUCCESS);
     }
 
-    protected void sendBlob(ProcessContext ctx, ProcessSession session, FlowFile ff, Blob doc) {
+    protected void sendBlob(ProcessContext ctx, ProcessSession session, FlowFile ff, Blob blob) {
         FlowFile childFlow = session.create(ff);
 
         // Copy blob to output
-        try (InputStream in = doc.getStream(); OutputStream out = session.write(childFlow)) {
+        try (InputStream in = blob.getStream(); OutputStream out = session.write(childFlow)) {
             IOUtils.copy(in, out);
         } catch (IOException e) {
-            getLogger().error("Error serializing blob" + doc, e);
+            getLogger().error("Error serializing blob" + blob, e);
             return;
         }
         session.transfer(childFlow, REL_SUCCESS);

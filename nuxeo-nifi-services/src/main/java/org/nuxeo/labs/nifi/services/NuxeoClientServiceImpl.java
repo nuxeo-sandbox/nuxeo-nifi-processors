@@ -137,6 +137,17 @@ public class NuxeoClientServiceImpl extends AbstractControllerService implements
         authType = context.getProperty(AUTH_TYPE).getValue();
         username = context.getProperty(USERNAME).getValue();
         credentials = context.getProperty(CREDENTIALS).getValue();
+
+        if (!serverUrl.endsWith("/nuxeo") && !serverUrl.endsWith("/nuxeo/")) {
+            getLogger().warn("Server URL does not end with '/nuxeo': " + serverUrl);
+        }
+
+        try {
+            // Test client build
+            getClient();
+        } catch (Exception ex) {
+            throw new InitializationException(ex);
+        }
     }
 
     public NuxeoClient getClient() {

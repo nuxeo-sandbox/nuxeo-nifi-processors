@@ -16,13 +16,13 @@
  */
 package org.nuxeo.labs.nifi.processors;
 
-import java.io.IOException;
 import java.io.InputStream;
-import java.io.OutputStream;
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 
 import org.apache.commons.io.IOUtils;
@@ -43,26 +43,20 @@ import org.apache.nifi.processor.Relationship;
 import org.apache.nifi.processor.exception.ProcessException;
 import org.apache.nifi.processor.util.StandardValidators;
 import org.nuxeo.client.objects.Document;
-import org.nuxeo.client.objects.Repository;
-import org.nuxeo.client.objects.blob.StreamBlob;
+import org.nuxeo.client.objects.EntityTypes;
 import org.nuxeo.client.spi.NuxeoClientException;
 
-@Tags({ "nuxeo", "get", "blob" })
-@CapabilityDescription("Retrieve the blob data from Nuxeo for a given document.")
-@SeeAlso({ NuxeoBlobOperation.class, UploadNuxeoBlob.class })
-@ReadsAttributes({
-        @ReadsAttribute(attribute = NuxeoAttributes.VAR_DOC_ID, description = "Document ID to use if the path isn't specified"),
-        @ReadsAttribute(attribute = NuxeoAttributes.VAR_PATH, description = "Path to use, nx-docid overrides"),
-        @ReadsAttribute(attribute = NuxeoAttributes.VAR_XPATH, description = "X-Path to use, defaults to file:content") })
-@WritesAttributes({ @WritesAttribute(attribute = NuxeoAttributes.VAR_DOC_ID, description = "Added if not present"),
-        @WritesAttribute(attribute = NuxeoAttributes.VAR_FILENAME, description = "Filename of the blob"),
-        @WritesAttribute(attribute = NuxeoAttributes.VAR_ERROR, description = "Error set if problem occurs") })
-public class GetNuxeoBlob extends AbstractNuxeoProcessor {
+@Tags({ "nuxeo", "put", "attach", "blob" })
+@CapabilityDescription("Attach a blob to a Nuxeo Document.")
+@SeeAlso({ UploadNuxeoBlob.class })
+@ReadsAttributes({ @ReadsAttribute(attribute = "", description = "") })
+@WritesAttributes({ @WritesAttribute(attribute = NuxeoAttributes.VAR_DOC_ID, description = "Document ID") })
+public class AttachNuxeoBlob extends AbstractNuxeoDynamicProcessor {
 
     public static final PropertyDescriptor XPATH = new PropertyDescriptor.Builder().name("XPATH")
                                                                                    .displayName("Property X-Path")
                                                                                    .description(
-                                                                                           "Document x-path property to retrieve.")
+                                                                                           "Document x-path property to update.")
                                                                                    .expressionLanguageSupported(
                                                                                            ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
                                                                                    .defaultValue(
@@ -77,13 +71,13 @@ public class GetNuxeoBlob extends AbstractNuxeoProcessor {
         final List<PropertyDescriptor> descriptors = new ArrayList<PropertyDescriptor>();
         descriptors.add(NUXEO_CLIENT_SERVICE);
         descriptors.add(TARGET_REPO);
+        descriptors.add(DOC_ID);
         descriptors.add(DOC_PATH);
         descriptors.add(XPATH);
         this.descriptors = Collections.unmodifiableList(descriptors);
 
         final Set<Relationship> relationships = new HashSet<Relationship>();
         relationships.add(REL_SUCCESS);
-        relationships.add(REL_ORIGINAL);
         relationships.add(REL_FAILURE);
         this.relationships = Collections.unmodifiableSet(relationships);
     }
@@ -95,38 +89,47 @@ public class GetNuxeoBlob extends AbstractNuxeoProcessor {
             return;
         }
 
-        // Get target blob
         String xpath = getArg(context, flowFile, VAR_XPATH, XPATH);
-        String docId = getArg(context, flowFile, VAR_DOC_ID, null);
-        String path = getArg(context, flowFile, VAR_PATH, DOC_PATH);
+        String batch = getArg(context, flowFile, VAR_BATCH, null);
+        String index = getArg(context, flowFile, VAR_INDEX, null);
 
-        // Create success path
-        FlowFile blobFile = session.create(flowFile);
         try {
-            // Invoke document operation
-            Repository rep = getRepository(context);
-            StreamBlob blob = docId != null ? rep.streamBlobById(docId, xpath) : rep.streamBlobByPath(path, xpath);
+            Document doc = null;
 
-            // Write to flowfile
-            try (InputStream in = blob.getStream(); OutputStream out = session.write(blobFile)) {
-                IOUtils.copy(in, out);
-            } catch (IOException e) {
-                throw new NuxeoClientException(e.getMessage(), e);
+            // Try to load from existing context
+            String entityType = flowFile.getAttribute(VAR_ENTITY_TYPE);
+            if (EntityTypes.DOCUMENT.equals(entityType)) {
+                try (InputStream in = session.read(flowFile)) {
+                    String json = IOUtils.toString(in, UTF8);
+                    doc = this.nuxeoClient.getConverterFactory().readJSON(json, Document.class);
+                    doc.reconnectWith(this.nuxeoClient);
+                } catch (Exception iox) {
+                    getLogger().warn("Unable to load document from existing resource", iox);
+                }
             }
-            session.putAttribute(blobFile, VAR_FILENAME, blob.getFilename());
-            session.putAttribute(blobFile, "mime.type", blob.getMimeType());
 
-            session.putAttribute(blobFile, VAR_XPATH, xpath);
-            session.transfer(blobFile, REL_SUCCESS);
+            // Load from server
+            if (doc == null) {
+                doc = getDocument(context, flowFile);
+            }
+
+            // Blob properties
+            Map<String, Object> props = new HashMap<>();
+            props.put("upload-batch", batch);
+            props.put("upload-fileId", index);
+
+            // Attach the blob
+            doc.setPropertyValue(xpath, props);
+            doc = doc.updateDocument();
+
+            session.putAttribute(flowFile, VAR_ENTITY_TYPE, doc.getEntityType());
+            session.putAttribute(flowFile, VAR_DOC_ID, doc.getId());
+            session.transfer(flowFile, REL_SUCCESS);
         } catch (NuxeoClientException nce) {
-            session.remove(blobFile);
-
-            getLogger().error("Unable to retrieve blob", nce);
+            getLogger().error("Unable to attach document", nce);
             session.putAttribute(flowFile, VAR_ERROR, String.valueOf(nce));
             session.transfer(flowFile, REL_FAILURE);
-            return;
         }
-
-        session.transfer(flowFile, REL_ORIGINAL);
     }
+
 }

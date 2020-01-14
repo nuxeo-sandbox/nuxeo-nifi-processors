@@ -46,38 +46,49 @@ public abstract class AbstractNuxeoProcessor extends AbstractProcessor implement
                                                                                          .addValidator(Validator.VALID)
                                                                                          .build();
 
-    public static final PropertyDescriptor TARGET_PATH = new PropertyDescriptor.Builder().name("TARGET_PATH")
-                                                                                         .displayName("Target Path")
-                                                                                         .description(
-                                                                                                 "Target Path to use.")
-                                                                                         .expressionLanguageSupported(
-                                                                                                 ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
-                                                                                         .required(false)
-                                                                                         .addValidator(
-                                                                                                 StandardValidators.NON_BLANK_VALIDATOR)
-                                                                                         .build();
+    public static final PropertyDescriptor DOC_ID = new PropertyDescriptor.Builder().name("DOC_ID")
+                                                                                    .displayName("Document ID")
+                                                                                    .description(
+                                                                                            "Document identifier to use.")
+                                                                                    .expressionLanguageSupported(
+                                                                                            ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
+                                                                                    .required(false)
+                                                                                    .addValidator(
+                                                                                            StandardValidators.NON_BLANK_VALIDATOR)
+                                                                                    .build();
 
-    public static final PropertyDescriptor TARGET_TYPE = new PropertyDescriptor.Builder().name("TARGET_TYPE")
-                                                                                         .displayName("Target Type")
-                                                                                         .description(
-                                                                                                 "Target Document Type to use.")
-                                                                                         .expressionLanguageSupported(
-                                                                                                 ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
-                                                                                         .required(true)
-                                                                                         .addValidator(
-                                                                                                 StandardValidators.NON_BLANK_VALIDATOR)
-                                                                                         .build();
+    public static final PropertyDescriptor DOC_PATH = new PropertyDescriptor.Builder().name("DOC_PATH")
+                                                                                      .displayName("Document Path")
+                                                                                      .description(
+                                                                                              "Document Path to use.")
+                                                                                      .expressionLanguageSupported(
+                                                                                              ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
+                                                                                      .required(false)
+                                                                                      .addValidator(
+                                                                                              StandardValidators.NON_BLANK_VALIDATOR)
+                                                                                      .build();
 
-    public static final PropertyDescriptor TARGET_TITLE = new PropertyDescriptor.Builder().name("TARGET_TITLE")
-                                                                                          .displayName("Target Title")
-                                                                                          .description(
-                                                                                                  "Target Title to use.")
-                                                                                          .expressionLanguageSupported(
-                                                                                                  ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
-                                                                                          .required(false)
-                                                                                          .addValidator(
-                                                                                                  StandardValidators.NON_BLANK_VALIDATOR)
-                                                                                          .build();
+    public static final PropertyDescriptor DOC_TYPE = new PropertyDescriptor.Builder().name("DOC_TYPE")
+                                                                                      .displayName("Document Type")
+                                                                                      .description(
+                                                                                              "Document Type to use.")
+                                                                                      .expressionLanguageSupported(
+                                                                                              ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
+                                                                                      .required(true)
+                                                                                      .addValidator(
+                                                                                              StandardValidators.NON_BLANK_VALIDATOR)
+                                                                                      .build();
+
+    public static final PropertyDescriptor DOC_TITLE = new PropertyDescriptor.Builder().name("DOC_TITLE")
+                                                                                       .displayName("Document Title")
+                                                                                       .description(
+                                                                                               "Document Title to use.")
+                                                                                       .expressionLanguageSupported(
+                                                                                               ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
+                                                                                       .required(false)
+                                                                                       .addValidator(
+                                                                                               StandardValidators.NON_BLANK_VALIDATOR)
+                                                                                       .build();
 
     public static final PropertyDescriptor FILTER_SCHEMAS = new PropertyDescriptor.Builder().name("FILTER_SCHEMAS")
                                                                                             .displayName(
@@ -120,7 +131,7 @@ public abstract class AbstractNuxeoProcessor extends AbstractProcessor implement
     }
 
     /**
-     * Retrieve the Repostiory from the Nuxeo Client connection. Requires {@link NUXEO_CLIENT_SERVICE} and
+     * Retrieve the Repository from the Nuxeo Client connection. Requires {@link NUXEO_CLIENT_SERVICE} and
      * {@link TARGET_REPO} properties within processor descriptor.
      * 
      * @param context
@@ -195,8 +206,8 @@ public abstract class AbstractNuxeoProcessor extends AbstractProcessor implement
     }
 
     protected Document getDocument(ProcessContext context, FlowFile flowFile) {
-        String docId = getArg(context, flowFile, DOC_ID, null);
-        String path = getArg(context, flowFile, PATH, TARGET_PATH);
+        String docId = getArg(context, flowFile, VAR_DOC_ID, DOC_ID);
+        String path = getArg(context, flowFile, VAR_PATH, DOC_PATH);
 
         Repository rep = getRepository(context);
         Document doc = docId != null ? rep.fetchDocumentById(docId) : rep.fetchDocumentByPath(path);

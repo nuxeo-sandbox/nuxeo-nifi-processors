@@ -237,8 +237,8 @@ public class ExecuteNuxeoQuery extends AbstractNuxeoProcessor {
                     continue;
                 }
 
-                session.putAttribute(childFlow, ENTITY_TYPE, doc.getEntityType());
-                session.putAttribute(childFlow, DOC_ID, doc.getId());
+                session.putAttribute(childFlow, VAR_ENTITY_TYPE, doc.getEntityType());
+                session.putAttribute(childFlow, VAR_DOC_ID, doc.getId());
                 session.transfer(childFlow, REL_SUCCESS);
             }
         } catch (NuxeoClientException nce) {

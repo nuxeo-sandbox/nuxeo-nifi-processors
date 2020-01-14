@@ -46,7 +46,7 @@ import org.nuxeo.client.spi.NuxeoClientException;
 @CapabilityDescription("Execute an operation with a Blob in Nuxeo.")
 @SeeAlso({ StartNuxeoWorkflow.class })
 @ReadsAttributes({ @ReadsAttribute(attribute = "", description = "") })
-@WritesAttributes({ @WritesAttribute(attribute = NuxeoAttributes.DOC_ID, description = "Document ID") })
+@WritesAttributes({ @WritesAttribute(attribute = NuxeoAttributes.VAR_DOC_ID, description = "Document ID") })
 public class NuxeoBlobOperation extends AbstractNuxeoOperationProcessor {
 
     public NuxeoBlobOperation() {
@@ -77,8 +77,8 @@ public class NuxeoBlobOperation extends AbstractNuxeoOperationProcessor {
         }
 
         // Evaluate target path
-        String filename = getArg(context, flowFile, "filename", null);
-        String opId = getArg(context, flowFile, OPERATION, OPERATION_ID);
+        String filename = getArg(context, flowFile, VAR_FILENAME, null);
+        String opId = getArg(context, flowFile, VAR_OPERATION, OPERATION_ID);
 
         if (filename == null) {
             filename = String.valueOf(flowFile.getId());
@@ -96,7 +96,7 @@ public class NuxeoBlobOperation extends AbstractNuxeoOperationProcessor {
             session.transfer(flowFile, REL_ORIGINAL);
         } catch (NuxeoClientException nce) {
             getLogger().error("Unable to store document", nce);
-            session.putAttribute(flowFile, ERROR, String.valueOf(nce));
+            session.putAttribute(flowFile, VAR_ERROR, String.valueOf(nce));
             session.transfer(flowFile, REL_FAILURE);
         }
     }

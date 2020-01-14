@@ -36,7 +36,7 @@ public class ITNuxeoDocumentOperationTest extends BaseTest {
         testRunner = TestRunners.newTestRunner(NuxeoDocumentOperation.class);
         addController(testRunner);
 
-        testRunner.setProperty(NuxeoDocumentOperation.TARGET_PATH, "${nxpath}");
+        testRunner.setProperty(NuxeoDocumentOperation.DOC_PATH, "${nxpath}");
         testRunner.setProperty(NuxeoDocumentOperation.OPERATION_ID, "Document.AddToFavorites");
         testRunner.setProperty(NuxeoDocumentOperation.NUXEO_CLIENT_SERVICE, "localhost");
     }

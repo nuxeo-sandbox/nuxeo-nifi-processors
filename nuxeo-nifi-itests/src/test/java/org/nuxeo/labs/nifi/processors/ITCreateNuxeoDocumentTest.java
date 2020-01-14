@@ -33,9 +33,9 @@ public class ITCreateNuxeoDocumentTest extends BaseTest {
         testRunner = TestRunners.newTestRunner(CreateNuxeoDocument.class);
         addController(testRunner);
 
-        testRunner.setProperty(CreateNuxeoDocument.TARGET_PATH, "${nxpath}");
-        testRunner.setProperty(CreateNuxeoDocument.TARGET_NAME, "${nxname}");
-        testRunner.setProperty(CreateNuxeoDocument.TARGET_TYPE, "File");
+        testRunner.setProperty(CreateNuxeoDocument.DOC_PATH, "${nxpath}");
+        testRunner.setProperty(CreateNuxeoDocument.DOC_NAME, "${nxname}");
+        testRunner.setProperty(CreateNuxeoDocument.DOC_TYPE, "File");
         testRunner.setProperty(CreateNuxeoDocument.NUXEO_CLIENT_SERVICE, "localhost");
     }
 

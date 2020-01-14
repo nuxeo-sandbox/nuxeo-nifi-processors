@@ -45,7 +45,7 @@ import org.nuxeo.client.spi.NuxeoClientException;
 @CapabilityDescription("Execute an operation with a Document in Nuxeo.")
 @SeeAlso({ StartNuxeoWorkflow.class })
 @ReadsAttributes({ @ReadsAttribute(attribute = "", description = "") })
-@WritesAttributes({ @WritesAttribute(attribute = NuxeoAttributes.DOC_ID, description = "Document ID") })
+@WritesAttributes({ @WritesAttribute(attribute = NuxeoAttributes.VAR_DOC_ID, description = "Document ID") })
 public class NuxeoDocumentOperation extends AbstractNuxeoOperationProcessor {
 
     public NuxeoDocumentOperation() {
@@ -57,7 +57,7 @@ public class NuxeoDocumentOperation extends AbstractNuxeoOperationProcessor {
         final List<PropertyDescriptor> descriptors = new ArrayList<PropertyDescriptor>();
         descriptors.add(NUXEO_CLIENT_SERVICE);
         descriptors.add(TARGET_REPO);
-        descriptors.add(TARGET_PATH);
+        descriptors.add(DOC_PATH);
         descriptors.add(OPERATION_ID);
         descriptors.add(SPLIT_RESPONSE);
         this.descriptors = Collections.unmodifiableList(descriptors);
@@ -77,7 +77,7 @@ public class NuxeoDocumentOperation extends AbstractNuxeoOperationProcessor {
         }
 
         // Evaluate target operation
-        String opId = getArg(context, flowFile, OPERATION, OPERATION_ID);
+        String opId = getArg(context, flowFile, VAR_OPERATION, OPERATION_ID);
 
         try {
             Document doc = getDocument(context, flowFile);
@@ -88,7 +88,7 @@ public class NuxeoDocumentOperation extends AbstractNuxeoOperationProcessor {
             session.transfer(flowFile, REL_ORIGINAL);
         } catch (NuxeoClientException nce) {
             getLogger().error("Failed to invoke Document operation: " + opId, nce);
-            session.putAttribute(flowFile, ERROR, String.valueOf(nce));
+            session.putAttribute(flowFile, VAR_ERROR, String.valueOf(nce));
             session.transfer(flowFile, REL_FAILURE);
         }
     }
