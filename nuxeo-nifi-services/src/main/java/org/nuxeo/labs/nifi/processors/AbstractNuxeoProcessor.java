@@ -49,7 +49,7 @@ public abstract class AbstractNuxeoProcessor extends AbstractProcessor implement
     public static final PropertyDescriptor DOC_ID = new PropertyDescriptor.Builder().name("DOC_ID")
                                                                                     .displayName("Document ID")
                                                                                     .description(
-                                                                                            "Document identifier to use.")
+                                                                                            "Document identifier to use. {nx-docid}")
                                                                                     .expressionLanguageSupported(
                                                                                             ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
                                                                                     .required(false)
@@ -60,7 +60,7 @@ public abstract class AbstractNuxeoProcessor extends AbstractProcessor implement
     public static final PropertyDescriptor DOC_PATH = new PropertyDescriptor.Builder().name("DOC_PATH")
                                                                                       .displayName("Document Path")
                                                                                       .description(
-                                                                                              "Document Path to use.")
+                                                                                              "Document Path to use. {nx-path}")
                                                                                       .expressionLanguageSupported(
                                                                                               ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
                                                                                       .required(false)
@@ -71,7 +71,7 @@ public abstract class AbstractNuxeoProcessor extends AbstractProcessor implement
     public static final PropertyDescriptor DOC_TYPE = new PropertyDescriptor.Builder().name("DOC_TYPE")
                                                                                       .displayName("Document Type")
                                                                                       .description(
-                                                                                              "Document Type to use.")
+                                                                                              "Document Type to use. {nx-type}")
                                                                                       .expressionLanguageSupported(
                                                                                               ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
                                                                                       .required(true)
@@ -82,7 +82,7 @@ public abstract class AbstractNuxeoProcessor extends AbstractProcessor implement
     public static final PropertyDescriptor DOC_TITLE = new PropertyDescriptor.Builder().name("DOC_TITLE")
                                                                                        .displayName("Document Title")
                                                                                        .description(
-                                                                                               "Document Title to use.")
+                                                                                               "Document Title to use. {nx-title}")
                                                                                        .expressionLanguageSupported(
                                                                                                ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
                                                                                        .required(false)
@@ -102,15 +102,15 @@ public abstract class AbstractNuxeoProcessor extends AbstractProcessor implement
                                                                                                             StandardValidators.ATTRIBUTE_KEY_VALIDATOR))
                                                                                             .build();
 
-    public static final Relationship REL_SUCCESS = new Relationship.Builder().name("SUCCESS")
+    public static final Relationship REL_SUCCESS = new Relationship.Builder().name("success")
                                                                              .description("Document retrieved")
                                                                              .build();
 
-    public static final Relationship REL_ORIGINAL = new Relationship.Builder().name("ORIGINAL")
+    public static final Relationship REL_ORIGINAL = new Relationship.Builder().name("original")
                                                                               .description("Original Document")
                                                                               .build();
 
-    public static final Relationship REL_FAILURE = new Relationship.Builder().name("FAILURE")
+    public static final Relationship REL_FAILURE = new Relationship.Builder().name("failure")
                                                                              .description("Document unavailable")
                                                                              .build();
 
@@ -192,7 +192,7 @@ public abstract class AbstractNuxeoProcessor extends AbstractProcessor implement
     }
 
     protected String getArg(ProcessContext ctx, FlowFile ff, String key, PropertyDescriptor desc) {
-        if (key != null && ff.getAttribute(key) != null) {
+        if (key != null && ff != null && ff.getAttribute(key) != null) {
             return ff.getAttribute(key);
         }
         if (desc != null) {

@@ -25,11 +25,14 @@ import java.util.List;
 import java.util.Set;
 
 import org.apache.commons.io.IOUtils;
+import org.apache.commons.lang3.StringUtils;
+import org.apache.nifi.annotation.behavior.InputRequirement;
 import org.apache.nifi.annotation.behavior.ReadsAttribute;
 import org.apache.nifi.annotation.behavior.ReadsAttributes;
 import org.apache.nifi.annotation.behavior.TriggerWhenEmpty;
 import org.apache.nifi.annotation.behavior.WritesAttribute;
 import org.apache.nifi.annotation.behavior.WritesAttributes;
+import org.apache.nifi.annotation.behavior.InputRequirement.Requirement;
 import org.apache.nifi.annotation.documentation.CapabilityDescription;
 import org.apache.nifi.annotation.documentation.SeeAlso;
 import org.apache.nifi.annotation.documentation.Tags;
@@ -55,6 +58,7 @@ import org.nuxeo.client.spi.NuxeoClientException;
         @WritesAttribute(attribute = NuxeoAttributes.VAR_DOC_ID, description = "Added for each document retreived"),
         @WritesAttribute(attribute = NuxeoAttributes.VAR_ERROR, description = "Error set if problem occurs") })
 @TriggerWhenEmpty
+@InputRequirement(Requirement.INPUT_ALLOWED)
 public class GetNuxeoChildren extends AbstractNuxeoProcessor {
 
     @Override
@@ -75,13 +79,14 @@ public class GetNuxeoChildren extends AbstractNuxeoProcessor {
     @Override
     public void onTrigger(final ProcessContext context, final ProcessSession session) throws ProcessException {
         FlowFile flowFile = session.get();
-        if (flowFile == null) {
-            return;
-        }
 
         // Get target path
         String docId = getArg(context, flowFile, VAR_DOC_ID, null);
         String path = getArg(context, flowFile, VAR_PATH, DOC_PATH);
+        
+        if (StringUtils.isBlank(docId) && StringUtils.isBlank(path)) {
+            return;
+        }
 
         try {
             // Invoke document operation
@@ -90,7 +95,7 @@ public class GetNuxeoChildren extends AbstractNuxeoProcessor {
 
             // Write documents to flowfile
             for (Document doc : docs.getDocuments()) {
-                FlowFile childFlow = session.create(flowFile);
+                FlowFile childFlow = flowFile == null ? session.create() : session.create(flowFile);
 
                 // Convert and write to JSON
                 String json = this.nuxeoClient.getConverterFactory().writeJSON(doc);
@@ -104,6 +109,9 @@ public class GetNuxeoChildren extends AbstractNuxeoProcessor {
                 session.transfer(childFlow, REL_SUCCESS);
             }
         } catch (NuxeoClientException nce) {
+            if (flowFile == null) {
+                flowFile = session.create();
+            }
             session.putAttribute(flowFile, VAR_ERROR, nce.getMessage());
             session.transfer(flowFile, REL_FAILURE);
             return;

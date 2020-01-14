@@ -74,7 +74,9 @@ public abstract class AbstractNuxeoOperationProcessor extends AbstractNuxeoDynam
     protected Operation enrichOperation(ProcessContext ctx, FlowFile ff, Operation op) {
         for (PropertyDescriptor desc : this.dynamicProperties) {
             String arg = getArg(ctx, ff, null, desc);
-            op.context(desc.getName(), arg);
+            if (arg != null) {
+                op.context(desc.getName(), arg);
+            }
         }
         return op;
     }
@@ -116,7 +118,7 @@ public abstract class AbstractNuxeoOperationProcessor extends AbstractNuxeoDynam
     }
 
     protected void sendDocument(ProcessContext ctx, ProcessSession session, FlowFile ff, Object doc) {
-        FlowFile childFlow = session.create(ff);
+        FlowFile childFlow = ff == null ? session.create() : session.create(ff);
 
         // Convert and write to JSON
         String json = this.nuxeoClient.getConverterFactory().writeJSON(doc);
@@ -137,7 +139,7 @@ public abstract class AbstractNuxeoOperationProcessor extends AbstractNuxeoDynam
     }
 
     protected void sendBlob(ProcessContext ctx, ProcessSession session, FlowFile ff, Blob blob) {
-        FlowFile childFlow = session.create(ff);
+        FlowFile childFlow = ff == null ? session.create() : session.create(ff);
 
         // Copy blob to output
         try (InputStream in = blob.getStream(); OutputStream out = session.write(childFlow)) {

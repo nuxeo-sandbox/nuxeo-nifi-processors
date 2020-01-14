@@ -26,8 +26,12 @@ import java.util.List;
 import java.util.Set;
 
 import org.apache.commons.io.IOUtils;
+import org.apache.commons.lang3.StringUtils;
+import org.apache.nifi.annotation.behavior.InputRequirement;
+import org.apache.nifi.annotation.behavior.InputRequirement.Requirement;
 import org.apache.nifi.annotation.behavior.ReadsAttribute;
 import org.apache.nifi.annotation.behavior.ReadsAttributes;
+import org.apache.nifi.annotation.behavior.TriggerWhenEmpty;
 import org.apache.nifi.annotation.behavior.WritesAttribute;
 import org.apache.nifi.annotation.behavior.WritesAttributes;
 import org.apache.nifi.annotation.documentation.CapabilityDescription;
@@ -57,12 +61,14 @@ import org.nuxeo.client.spi.NuxeoClientException;
 @WritesAttributes({ @WritesAttribute(attribute = NuxeoAttributes.VAR_DOC_ID, description = "Added if not present"),
         @WritesAttribute(attribute = NuxeoAttributes.VAR_FILENAME, description = "Filename of the blob"),
         @WritesAttribute(attribute = NuxeoAttributes.VAR_ERROR, description = "Error set if problem occurs") })
+@TriggerWhenEmpty
+@InputRequirement(Requirement.INPUT_ALLOWED)
 public class GetNuxeoBlob extends AbstractNuxeoProcessor {
 
     public static final PropertyDescriptor XPATH = new PropertyDescriptor.Builder().name("XPATH")
                                                                                    .displayName("Property X-Path")
                                                                                    .description(
-                                                                                           "Document x-path property to retrieve.")
+                                                                                           "Document x-path property to retrieve. {nx-xpath}")
                                                                                    .expressionLanguageSupported(
                                                                                            ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
                                                                                    .defaultValue(
@@ -91,17 +97,18 @@ public class GetNuxeoBlob extends AbstractNuxeoProcessor {
     @Override
     public void onTrigger(final ProcessContext context, final ProcessSession session) throws ProcessException {
         FlowFile flowFile = session.get();
-        if (flowFile == null) {
-            return;
-        }
 
         // Get target blob
         String xpath = getArg(context, flowFile, VAR_XPATH, XPATH);
         String docId = getArg(context, flowFile, VAR_DOC_ID, null);
         String path = getArg(context, flowFile, VAR_PATH, DOC_PATH);
+        
+        if (StringUtils.isBlank(docId) && StringUtils.isBlank(path)) {
+            return;
+        }
 
         // Create success path
-        FlowFile blobFile = session.create(flowFile);
+        FlowFile blobFile = flowFile == null ? session.create() : session.create(flowFile);
         try {
             // Invoke document operation
             Repository rep = getRepository(context);
@@ -121,12 +128,17 @@ public class GetNuxeoBlob extends AbstractNuxeoProcessor {
         } catch (NuxeoClientException nce) {
             session.remove(blobFile);
 
+            if (flowFile == null) {
+                flowFile = session.create();
+            }
             getLogger().error("Unable to retrieve blob", nce);
             session.putAttribute(flowFile, VAR_ERROR, String.valueOf(nce));
             session.transfer(flowFile, REL_FAILURE);
             return;
         }
 
-        session.transfer(flowFile, REL_ORIGINAL);
+        if (flowFile != null) {
+            session.transfer(flowFile, REL_ORIGINAL);
+        }
     }
 }

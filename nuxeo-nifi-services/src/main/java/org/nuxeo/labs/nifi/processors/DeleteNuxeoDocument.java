@@ -25,10 +25,12 @@ import java.util.List;
 import java.util.Set;
 
 import org.apache.commons.io.IOUtils;
+import org.apache.nifi.annotation.behavior.InputRequirement;
 import org.apache.nifi.annotation.behavior.ReadsAttribute;
 import org.apache.nifi.annotation.behavior.ReadsAttributes;
 import org.apache.nifi.annotation.behavior.WritesAttribute;
 import org.apache.nifi.annotation.behavior.WritesAttributes;
+import org.apache.nifi.annotation.behavior.InputRequirement.Requirement;
 import org.apache.nifi.annotation.documentation.CapabilityDescription;
 import org.apache.nifi.annotation.documentation.SeeAlso;
 import org.apache.nifi.annotation.documentation.Tags;
@@ -47,12 +49,13 @@ import org.nuxeo.client.spi.NuxeoClientException;
 @Tags({ "nuxeo", "delete", "document" })
 @CapabilityDescription("Remove a document from Nuxeo.")
 @SeeAlso({ GetNuxeoDocument.class, GetNuxeoBlob.class })
-@ReadsAttributes({
-        @ReadsAttribute(attribute = NuxeoAttributes.VAR_DOC_ID, description = "Document ID to use if the path isn't specified"),
-        @ReadsAttribute(attribute = NuxeoAttributes.VAR_PATH, description = "Path to use, nx-docid overrides") })
+@ReadsAttributes({ @ReadsAttribute(attribute = NuxeoAttributes.VAR_DOC_ID, description = "Document ID {nx-docid}"),
+        @ReadsAttribute(attribute = NuxeoAttributes.VAR_PATH, description = "Document Path {nx-path}") })
 @WritesAttributes({
         @WritesAttribute(attribute = NuxeoAttributes.VAR_DOC_ID, description = "Added for each document deleted"),
+        @WritesAttribute(attribute = "nx-trashed", description = "True if document trashed"),
         @WritesAttribute(attribute = NuxeoAttributes.VAR_ERROR, description = "Error set if problem occurs") })
+@InputRequirement(Requirement.INPUT_REQUIRED)
 public class DeleteNuxeoDocument extends AbstractNuxeoProcessor {
 
     public static final PropertyDescriptor TRASH_DOCUMENT = new PropertyDescriptor.Builder().name("TRASH_DOCUMENT")
@@ -94,6 +97,9 @@ public class DeleteNuxeoDocument extends AbstractNuxeoProcessor {
         try {
             // Invoke document operation
             Document doc = getDocument(context, flowFile);
+            if (doc == null) {
+                return;
+            }
             Repository rep = getRepository(context);
             session.putAttribute(flowFile, VAR_DOC_ID, doc.getId());
 

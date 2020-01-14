@@ -22,8 +22,12 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 
+import org.apache.commons.lang3.StringUtils;
+import org.apache.nifi.annotation.behavior.InputRequirement;
+import org.apache.nifi.annotation.behavior.InputRequirement.Requirement;
 import org.apache.nifi.annotation.behavior.ReadsAttribute;
 import org.apache.nifi.annotation.behavior.ReadsAttributes;
+import org.apache.nifi.annotation.behavior.TriggerWhenEmpty;
 import org.apache.nifi.annotation.behavior.WritesAttribute;
 import org.apache.nifi.annotation.behavior.WritesAttributes;
 import org.apache.nifi.annotation.documentation.CapabilityDescription;
@@ -46,11 +50,13 @@ import org.nuxeo.client.spi.NuxeoClientException;
 @CapabilityDescription("Start workflow for documents within Nuxeo.")
 @SeeAlso({ GetNuxeoWorkflows.class })
 @ReadsAttributes({ @ReadsAttribute(attribute = "nx-workflow", description = "Workflow to start."),
-        @ReadsAttribute(attribute = "nx-docid", description = "Document ID to use if the path isn't specified"),
-        @ReadsAttribute(attribute = "nx-path", description = "Path to use, nx-docid overrides") })
+        @ReadsAttribute(attribute = NuxeoAttributes.VAR_DOC_ID, description = "Document ID to use if the path isn't specified"),
+        @ReadsAttribute(attribute = NuxeoAttributes.VAR_PATH, description = "Path to use, nx-docid overrides") })
 @WritesAttributes({
         @WritesAttribute(attribute = "nx-workflow-id", description = "ID of workflow that has been started."),
         @WritesAttribute(attribute = NuxeoAttributes.VAR_ERROR, description = "Error set if problem occurs") })
+@TriggerWhenEmpty
+@InputRequirement(Requirement.INPUT_ALLOWED)
 public class StartNuxeoWorkflow extends AbstractNuxeoProcessor {
 
     public static final PropertyDescriptor WORKFLOW = new PropertyDescriptor.Builder().name("WORKFLOW")
@@ -80,14 +86,17 @@ public class StartNuxeoWorkflow extends AbstractNuxeoProcessor {
     @Override
     public void onTrigger(final ProcessContext context, final ProcessSession session) throws ProcessException {
         FlowFile flowFile = session.get();
-        if (flowFile == null) {
-            return;
-        }
 
         // Evaluate target path
         String workflowName = getArg(context, flowFile, "nx-workflow", WORKFLOW);
         String docId = getArg(context, flowFile, VAR_DOC_ID, null);
         String path = getArg(context, flowFile, VAR_PATH, DOC_PATH);
+        
+        if (StringUtils.isBlank(docId) && StringUtils.isBlank(path)) {
+            return;
+        } else if (flowFile == null) {
+            flowFile = session.create();
+        }
 
         try {
             // Invoke document operation

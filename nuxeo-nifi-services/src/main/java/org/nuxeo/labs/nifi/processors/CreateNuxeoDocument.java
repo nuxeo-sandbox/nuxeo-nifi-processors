@@ -22,8 +22,11 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 
+import org.apache.nifi.annotation.behavior.InputRequirement;
+import org.apache.nifi.annotation.behavior.InputRequirement.Requirement;
 import org.apache.nifi.annotation.behavior.ReadsAttribute;
 import org.apache.nifi.annotation.behavior.ReadsAttributes;
+import org.apache.nifi.annotation.behavior.TriggerWhenEmpty;
 import org.apache.nifi.annotation.behavior.WritesAttribute;
 import org.apache.nifi.annotation.behavior.WritesAttributes;
 import org.apache.nifi.annotation.documentation.CapabilityDescription;
@@ -43,15 +46,22 @@ import org.nuxeo.client.spi.NuxeoClientException;
 
 @Tags({ "nuxeo", "create", "document" })
 @CapabilityDescription("Create a Nuxeo Document in the repository.")
-@SeeAlso({ GetNuxeoDocument.class })
-@ReadsAttributes({ @ReadsAttribute(attribute = "", description = "") })
-@WritesAttributes({ @WritesAttribute(attribute = NuxeoAttributes.VAR_DOC_ID, description = "Document ID") })
+@SeeAlso({ GetNuxeoDocument.class, UpdateNuxeoDocument.class })
+@ReadsAttributes({ @ReadsAttribute(attribute = NuxeoAttributes.VAR_NAME, description = "Document name {nx-name}"),
+        @ReadsAttribute(attribute = NuxeoAttributes.VAR_PATH, description = "Document path {nx-path}"),
+        @ReadsAttribute(attribute = NuxeoAttributes.VAR_TYPE, description = "Document type (File, Picture, etc) {nx-type}"),
+        @ReadsAttribute(attribute = NuxeoAttributes.VAR_TITLE, description = "Document title {nx-title}") })
+@WritesAttributes({
+        @WritesAttribute(attribute = NuxeoAttributes.VAR_ENTITY_TYPE, description = "Document entity type {nx-entity}"),
+        @WritesAttribute(attribute = NuxeoAttributes.VAR_DOC_ID, description = "Document ID {nx-docid}") })
+@TriggerWhenEmpty
+@InputRequirement(Requirement.INPUT_ALLOWED)
 public class CreateNuxeoDocument extends AbstractNuxeoDynamicProcessor {
 
     public static final PropertyDescriptor DOC_NAME = new PropertyDescriptor.Builder().name("DOC_NAME")
                                                                                       .displayName("Document Name")
                                                                                       .description(
-                                                                                              "Document Name to use.")
+                                                                                              "Document Name to use. {nx-name}")
                                                                                       .expressionLanguageSupported(
                                                                                               ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
                                                                                       .required(true)
@@ -87,9 +97,6 @@ public class CreateNuxeoDocument extends AbstractNuxeoDynamicProcessor {
     @Override
     public void onTrigger(final ProcessContext context, final ProcessSession session) throws ProcessException {
         FlowFile flowFile = session.get();
-        if (flowFile == null) {
-            return;
-        }
 
         // Evaluate target path
         String path = getArg(context, flowFile, VAR_PATH, DOC_PATH);
@@ -98,6 +105,10 @@ public class CreateNuxeoDocument extends AbstractNuxeoDynamicProcessor {
         String title = getArg(context, flowFile, VAR_TITLE, DOC_TITLE);
         if (title == null) {
             title = name;
+        }
+
+        if (flowFile == null) {
+            flowFile = session.create();
         }
 
         try {
@@ -109,7 +120,10 @@ public class CreateNuxeoDocument extends AbstractNuxeoDynamicProcessor {
                 for (PropertyDescriptor desc : this.dynamicProperties) {
                     String key = desc.getName();
                     String value = getArg(context, flowFile, null, desc);
-                    doc.setPropertyValue(key, value);
+                    if (value != null) {
+                        // TODO handle complex JSON values
+                        doc.setPropertyValue(key, value);
+                    }
                 }
             }
 

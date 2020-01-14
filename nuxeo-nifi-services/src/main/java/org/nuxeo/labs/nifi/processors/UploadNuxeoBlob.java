@@ -24,10 +24,12 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 
+import org.apache.nifi.annotation.behavior.InputRequirement;
 import org.apache.nifi.annotation.behavior.ReadsAttribute;
 import org.apache.nifi.annotation.behavior.ReadsAttributes;
 import org.apache.nifi.annotation.behavior.WritesAttribute;
 import org.apache.nifi.annotation.behavior.WritesAttributes;
+import org.apache.nifi.annotation.behavior.InputRequirement.Requirement;
 import org.apache.nifi.annotation.documentation.CapabilityDescription;
 import org.apache.nifi.annotation.documentation.SeeAlso;
 import org.apache.nifi.annotation.documentation.Tags;
@@ -53,6 +55,7 @@ import org.nuxeo.client.spi.NuxeoClientException;
         @WritesAttribute(attribute = NuxeoAttributes.VAR_INDEX, description = "Batch index"),
         @WritesAttribute(attribute = NuxeoAttributes.VAR_FILENAME, description = "Blob filename"),
         @WritesAttribute(attribute = NuxeoAttributes.VAR_ERROR, description = "Error set if problem occurs") })
+@InputRequirement(Requirement.INPUT_REQUIRED)
 public class UploadNuxeoBlob extends AbstractNuxeoProcessor {
 
     public static final PropertyDescriptor FILE_NAME = new PropertyDescriptor.Builder().name("FILE_NAME")

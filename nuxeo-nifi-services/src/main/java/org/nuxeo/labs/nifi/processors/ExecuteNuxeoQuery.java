@@ -25,11 +25,13 @@ import java.util.List;
 import java.util.Set;
 
 import org.apache.commons.io.IOUtils;
+import org.apache.nifi.annotation.behavior.InputRequirement;
 import org.apache.nifi.annotation.behavior.ReadsAttribute;
 import org.apache.nifi.annotation.behavior.ReadsAttributes;
 import org.apache.nifi.annotation.behavior.TriggerWhenEmpty;
 import org.apache.nifi.annotation.behavior.WritesAttribute;
 import org.apache.nifi.annotation.behavior.WritesAttributes;
+import org.apache.nifi.annotation.behavior.InputRequirement.Requirement;
 import org.apache.nifi.annotation.documentation.CapabilityDescription;
 import org.apache.nifi.annotation.documentation.Tags;
 import org.apache.nifi.components.PropertyDescriptor;
@@ -57,12 +59,13 @@ import org.nuxeo.client.spi.NuxeoClientException;
         @ReadsAttribute(attribute = "nx-query-params", description = "Query parameters to use") })
 @WritesAttributes({ @WritesAttribute(attribute = "nx-docid", description = "Document ID") })
 @TriggerWhenEmpty
+@InputRequirement(Requirement.INPUT_ALLOWED)
 public class ExecuteNuxeoQuery extends AbstractNuxeoProcessor {
 
     public static final PropertyDescriptor QUERY = new PropertyDescriptor.Builder().name("QUERY")
                                                                                    .displayName("Query")
                                                                                    .description(
-                                                                                           "NXQL to execute, nx-query overrides.")
+                                                                                           "NXQL to execute. {nx-query}")
                                                                                    .expressionLanguageSupported(
                                                                                            ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
                                                                                    .required(false)
@@ -72,7 +75,7 @@ public class ExecuteNuxeoQuery extends AbstractNuxeoProcessor {
     public static final PropertyDescriptor PAGE_SIZE = new PropertyDescriptor.Builder().name("PAGE_SIZE")
                                                                                        .displayName("Page Size")
                                                                                        .description(
-                                                                                               "Page size to retrieve, nx-page-size is used.")
+                                                                                               "Page size to retrieve. {nx-page-size}")
                                                                                        .expressionLanguageSupported(
                                                                                                ExpressionLanguageScope.NONE)
                                                                                        .defaultValue("10")
@@ -84,7 +87,7 @@ public class ExecuteNuxeoQuery extends AbstractNuxeoProcessor {
     public static final PropertyDescriptor PAGE_INDEX = new PropertyDescriptor.Builder().name("PAGE_INDEX")
                                                                                         .displayName("Page Index")
                                                                                         .description(
-                                                                                                "Page index to start from, nx-page-index overrides.")
+                                                                                                "Result page index. {nx-page-index}")
                                                                                         .expressionLanguageSupported(
                                                                                                 ExpressionLanguageScope.NONE)
                                                                                         .defaultValue("0")
@@ -96,7 +99,7 @@ public class ExecuteNuxeoQuery extends AbstractNuxeoProcessor {
     public static final PropertyDescriptor MAX_RESULTS = new PropertyDescriptor.Builder().name("MAX_RESULTS")
                                                                                          .displayName("Max Results")
                                                                                          .description(
-                                                                                                 "Max results to return, nx-max-results overrides.")
+                                                                                                 "Max results to return. {nx-max-results}")
                                                                                          .expressionLanguageSupported(
                                                                                                  ExpressionLanguageScope.NONE)
                                                                                          .defaultValue("1000")
@@ -108,7 +111,7 @@ public class ExecuteNuxeoQuery extends AbstractNuxeoProcessor {
     public static final PropertyDescriptor SORT_BY = new PropertyDescriptor.Builder().name("SORT_BY")
                                                                                      .displayName("Sort By")
                                                                                      .description(
-                                                                                             "Sort by field, nx-sort-by overrides.")
+                                                                                             "Sort by field. {nx-sort-by}")
                                                                                      .expressionLanguageSupported(
                                                                                              ExpressionLanguageScope.NONE)
                                                                                      .required(false)
@@ -118,7 +121,7 @@ public class ExecuteNuxeoQuery extends AbstractNuxeoProcessor {
     public static final PropertyDescriptor SORT_ORDER = new PropertyDescriptor.Builder().name("SORT_ORDER")
                                                                                         .displayName("Sort Order")
                                                                                         .description(
-                                                                                                "Sort order to use (ASC, DESC), nx-sort-order overrides.")
+                                                                                                "Sort order to use (ASC, DESC). {nx-sort-order}")
                                                                                         .expressionLanguageSupported(
                                                                                                 ExpressionLanguageScope.NONE)
                                                                                         .required(false)
@@ -129,14 +132,14 @@ public class ExecuteNuxeoQuery extends AbstractNuxeoProcessor {
                                                                                           .displayName(
                                                                                                   "Query Parameters")
                                                                                           .description(
-                                                                                                  "Query parameters to use, nx-query-params overrides.")
+                                                                                                  "Query parameters to use. {nx-query-params}")
                                                                                           .expressionLanguageSupported(
                                                                                                   ExpressionLanguageScope.NONE)
                                                                                           .required(false)
                                                                                           .addValidator(Validator.VALID)
                                                                                           .build();
 
-    public static final Relationship REL_NEXT_PAGE = new Relationship.Builder().name("NEXT")
+    public static final Relationship REL_NEXT_PAGE = new Relationship.Builder().name("NextPage")
                                                                                .description("Next Page for Query")
                                                                                .build();
 

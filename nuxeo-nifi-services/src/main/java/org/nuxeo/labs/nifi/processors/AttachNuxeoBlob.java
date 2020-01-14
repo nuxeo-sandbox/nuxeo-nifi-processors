@@ -26,6 +26,9 @@ import java.util.Map;
 import java.util.Set;
 
 import org.apache.commons.io.IOUtils;
+import org.apache.commons.lang3.StringUtils;
+import org.apache.nifi.annotation.behavior.InputRequirement;
+import org.apache.nifi.annotation.behavior.InputRequirement.Requirement;
 import org.apache.nifi.annotation.behavior.ReadsAttribute;
 import org.apache.nifi.annotation.behavior.ReadsAttributes;
 import org.apache.nifi.annotation.behavior.WritesAttribute;
@@ -49,14 +52,21 @@ import org.nuxeo.client.spi.NuxeoClientException;
 @Tags({ "nuxeo", "put", "attach", "blob" })
 @CapabilityDescription("Attach a blob to a Nuxeo Document.")
 @SeeAlso({ UploadNuxeoBlob.class })
-@ReadsAttributes({ @ReadsAttribute(attribute = "", description = "") })
-@WritesAttributes({ @WritesAttribute(attribute = NuxeoAttributes.VAR_DOC_ID, description = "Document ID") })
+@ReadsAttributes({
+        @ReadsAttribute(attribute = NuxeoAttributes.VAR_BATCH, description = "Upload batch identifier {nx-batch}"),
+        @ReadsAttribute(attribute = NuxeoAttributes.VAR_INDEX, description = "Upload index {nx-index}"),
+        @ReadsAttribute(attribute = NuxeoAttributes.VAR_XPATH, description = "Property XPath {nx-xpath}"),
+        @ReadsAttribute(attribute = NuxeoAttributes.VAR_ENTITY_TYPE, description = "Document entity type {nx-entity}") })
+@WritesAttributes({
+        @WritesAttribute(attribute = NuxeoAttributes.VAR_ENTITY_TYPE, description = "Document entity type {nx-entity}"),
+        @WritesAttribute(attribute = NuxeoAttributes.VAR_DOC_ID, description = "Document ID {nx-docid}") })
+@InputRequirement(Requirement.INPUT_REQUIRED)
 public class AttachNuxeoBlob extends AbstractNuxeoDynamicProcessor {
 
     public static final PropertyDescriptor XPATH = new PropertyDescriptor.Builder().name("XPATH")
                                                                                    .displayName("Property X-Path")
                                                                                    .description(
-                                                                                           "Document x-path property to update.")
+                                                                                           "Document x-path property to update. {nx-xpath}")
                                                                                    .expressionLanguageSupported(
                                                                                            ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
                                                                                    .defaultValue(
@@ -92,6 +102,13 @@ public class AttachNuxeoBlob extends AbstractNuxeoDynamicProcessor {
         String xpath = getArg(context, flowFile, VAR_XPATH, XPATH);
         String batch = getArg(context, flowFile, VAR_BATCH, null);
         String index = getArg(context, flowFile, VAR_INDEX, null);
+
+        if (StringUtils.isBlank(batch) || StringUtils.isBlank(index)) {
+            getLogger().error("No upload batch found");
+            session.putAttribute(flowFile, VAR_ERROR, "No upload batch");
+            session.transfer(flowFile, REL_FAILURE);
+            return;
+        }
 
         try {
             Document doc = null;

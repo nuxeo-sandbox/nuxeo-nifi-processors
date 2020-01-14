@@ -22,8 +22,11 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 
+import org.apache.nifi.annotation.behavior.InputRequirement;
+import org.apache.nifi.annotation.behavior.InputRequirement.Requirement;
 import org.apache.nifi.annotation.behavior.ReadsAttribute;
 import org.apache.nifi.annotation.behavior.ReadsAttributes;
+import org.apache.nifi.annotation.behavior.TriggerWhenEmpty;
 import org.apache.nifi.annotation.behavior.WritesAttribute;
 import org.apache.nifi.annotation.behavior.WritesAttributes;
 import org.apache.nifi.annotation.documentation.CapabilityDescription;
@@ -42,8 +45,11 @@ import org.nuxeo.client.objects.Operation;
 @Tags({ "nuxeo", "operation", "execution" })
 @CapabilityDescription("Execute an operation in Nuxeo.")
 @SeeAlso({ StartNuxeoWorkflow.class })
+// TODO
 @ReadsAttributes({ @ReadsAttribute(attribute = "", description = "") })
 @WritesAttributes({ @WritesAttribute(attribute = NuxeoAttributes.VAR_DOC_ID, description = "Document ID") })
+@TriggerWhenEmpty
+@InputRequirement(Requirement.INPUT_ALLOWED)
 public class NuxeoOperation extends AbstractNuxeoOperationProcessor {
 
     public NuxeoOperation() {
@@ -69,9 +75,6 @@ public class NuxeoOperation extends AbstractNuxeoOperationProcessor {
     @Override
     public void onTrigger(final ProcessContext context, final ProcessSession session) throws ProcessException {
         FlowFile flowFile = session.get();
-        if (flowFile == null) {
-            return;
-        }
 
         // Evaluate target operation
         String opId = getArg(context, flowFile, VAR_OPERATION, OPERATION_ID);
@@ -81,8 +84,13 @@ public class NuxeoOperation extends AbstractNuxeoOperationProcessor {
             Operation op = client.operation(opId);
             enrichOperation(context, flowFile, op);
             executeOperation(context, session, flowFile, op);
-            session.transfer(flowFile, REL_ORIGINAL);
+            if (flowFile != null) {
+                session.transfer(flowFile, REL_ORIGINAL);
+            }
         } catch (Exception nce) {
+            if (flowFile == null) {
+                flowFile = session.create();
+            }
             getLogger().error("Unable to store document", nce);
             session.putAttribute(flowFile, VAR_ERROR, String.valueOf(nce));
             session.transfer(flowFile, REL_FAILURE);
