@@ -44,11 +44,14 @@ import org.nuxeo.client.objects.operation.DocRef;
 import org.nuxeo.client.spi.NuxeoClientException;
 
 @Tags({ "nuxeo", "operation", "execution", "document" })
-@CapabilityDescription("Execute an operation with a Document in Nuxeo.")
+@CapabilityDescription("Execute an operation with a Document as input.")
 @SeeAlso({ StartNuxeoWorkflow.class })
-// TODO
-@ReadsAttributes({ @ReadsAttribute(attribute = "", description = "") })
-@WritesAttributes({ @WritesAttribute(attribute = NuxeoAttributes.VAR_DOC_ID, description = "Document ID") })
+@ReadsAttributes({
+        @ReadsAttribute(attribute = NuxeoAttributes.VAR_OPERATION, description = "Nuxeo operation identifier"),
+        @ReadsAttribute(attribute = NuxeoAttributes.VAR_DOC_ID, description = "Document ID to use if the path isn't specified"),
+        @ReadsAttribute(attribute = NuxeoAttributes.VAR_PATH, description = "Path to use, nx-docid overrides") })
+@WritesAttributes({ @WritesAttribute(attribute = NuxeoAttributes.VAR_DOC_ID, description = "Document ID"),
+        @WritesAttribute(attribute = NuxeoAttributes.VAR_ENTITY_TYPE, description = "Document entity type") })
 @InputRequirement(Requirement.INPUT_REQUIRED)
 public class NuxeoDocumentOperation extends AbstractNuxeoOperationProcessor {
 
@@ -64,6 +67,7 @@ public class NuxeoDocumentOperation extends AbstractNuxeoOperationProcessor {
         descriptors.add(DOC_PATH);
         descriptors.add(OPERATION_ID);
         descriptors.add(SPLIT_RESPONSE);
+        descriptors.add(FILTER_SCHEMAS);
         this.descriptors = Collections.unmodifiableList(descriptors);
 
         final Set<Relationship> relationships = new HashSet<Relationship>();

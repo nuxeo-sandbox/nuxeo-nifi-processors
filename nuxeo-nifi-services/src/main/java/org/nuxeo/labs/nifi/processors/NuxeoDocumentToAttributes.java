@@ -52,9 +52,13 @@ import org.nuxeo.client.util.DocumentPath;
 @CapabilityDescription("Extract properties from a Nuxeo Document and set them as FlowFile attributes.")
 @SeeAlso({ GetNuxeoDocument.class })
 @EventDriven
-// TODO
-@ReadsAttributes({ @ReadsAttribute(attribute = "", description = "") })
-@WritesAttributes({ @WritesAttribute(attribute = NuxeoAttributes.VAR_DOC_ID, description = "Document ID") })
+@ReadsAttributes({
+        @ReadsAttribute(attribute = NuxeoAttributes.VAR_ENTITY_TYPE, description = "Document entity type, must be: "
+                + EntityTypes.DOCUMENT),
+        @ReadsAttribute(attribute = NuxeoAttributes.VAR_DOC_ID, description = "Document ID to use if the path isn't specified"),
+        @ReadsAttribute(attribute = NuxeoAttributes.VAR_PATH, description = "Path to use, nx-docid overrides") })
+@WritesAttributes({ @WritesAttribute(attribute = NuxeoAttributes.VAR_DOC_ID, description = "Document ID"),
+        @WritesAttribute(attribute = NuxeoAttributes.VAR_ENTITY_TYPE, description = "Document entity type") })
 @InputRequirement(Requirement.INPUT_REQUIRED)
 public class NuxeoDocumentToAttributes extends AbstractNuxeoDynamicProcessor {
 
@@ -64,6 +68,7 @@ public class NuxeoDocumentToAttributes extends AbstractNuxeoDynamicProcessor {
         descriptors.add(NUXEO_CLIENT_SERVICE);
         descriptors.add(TARGET_REPO);
         descriptors.add(DOC_PATH);
+        descriptors.add(FILTER_SCHEMAS);
         this.descriptors = Collections.unmodifiableList(descriptors);
 
         final Set<Relationship> relationships = new HashSet<Relationship>();

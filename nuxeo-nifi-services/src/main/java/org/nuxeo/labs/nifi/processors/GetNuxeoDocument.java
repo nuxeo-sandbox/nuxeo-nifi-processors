@@ -46,7 +46,7 @@ import org.nuxeo.client.objects.Document;
 import org.nuxeo.client.spi.NuxeoClientException;
 
 @Tags({ "nuxeo", "get", "document" })
-@CapabilityDescription("Retreive a document from Nuxeo as JSON.")
+@CapabilityDescription("Retrieve a document from Nuxeo as JSON.")
 @SeeAlso({ UpdateNuxeoDocument.class, GetNuxeoBlob.class })
 @ReadsAttributes({
         @ReadsAttribute(attribute = NuxeoAttributes.VAR_DOC_ID, description = "Document ID to use if the path isn't specified"),
@@ -65,6 +65,7 @@ public class GetNuxeoDocument extends AbstractNuxeoProcessor {
         descriptors.add(NUXEO_CLIENT_SERVICE);
         descriptors.add(TARGET_REPO);
         descriptors.add(DOC_PATH);
+        descriptors.add(FILTER_SCHEMAS);
         this.descriptors = Collections.unmodifiableList(descriptors);
 
         final Set<Relationship> relationships = new HashSet<Relationship>();

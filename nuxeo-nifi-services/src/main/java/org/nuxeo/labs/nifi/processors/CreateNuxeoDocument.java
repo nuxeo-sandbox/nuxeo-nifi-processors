@@ -47,13 +47,12 @@ import org.nuxeo.client.spi.NuxeoClientException;
 @Tags({ "nuxeo", "create", "document" })
 @CapabilityDescription("Create a Nuxeo Document in the repository.")
 @SeeAlso({ GetNuxeoDocument.class, UpdateNuxeoDocument.class })
-@ReadsAttributes({ @ReadsAttribute(attribute = NuxeoAttributes.VAR_NAME, description = "Document name {nx-name}"),
-        @ReadsAttribute(attribute = NuxeoAttributes.VAR_PATH, description = "Document path {nx-path}"),
-        @ReadsAttribute(attribute = NuxeoAttributes.VAR_TYPE, description = "Document type (File, Picture, etc) {nx-type}"),
-        @ReadsAttribute(attribute = NuxeoAttributes.VAR_TITLE, description = "Document title {nx-title}") })
-@WritesAttributes({
-        @WritesAttribute(attribute = NuxeoAttributes.VAR_ENTITY_TYPE, description = "Document entity type {nx-entity}"),
-        @WritesAttribute(attribute = NuxeoAttributes.VAR_DOC_ID, description = "Document ID {nx-docid}") })
+@ReadsAttributes({ @ReadsAttribute(attribute = NuxeoAttributes.VAR_NAME, description = "Document name"),
+        @ReadsAttribute(attribute = NuxeoAttributes.VAR_PATH, description = "Document path"),
+        @ReadsAttribute(attribute = NuxeoAttributes.VAR_TYPE, description = "Document type (File, Picture, etc)"),
+        @ReadsAttribute(attribute = NuxeoAttributes.VAR_TITLE, description = "Document title") })
+@WritesAttributes({ @WritesAttribute(attribute = NuxeoAttributes.VAR_ENTITY_TYPE, description = "Document entity type"),
+        @WritesAttribute(attribute = NuxeoAttributes.VAR_DOC_ID, description = "Document ID") })
 @TriggerWhenEmpty
 @InputRequirement(Requirement.INPUT_ALLOWED)
 public class CreateNuxeoDocument extends AbstractNuxeoDynamicProcessor {
@@ -121,8 +120,12 @@ public class CreateNuxeoDocument extends AbstractNuxeoDynamicProcessor {
                     String key = desc.getName();
                     String value = getArg(context, flowFile, null, desc);
                     if (value != null) {
-                        // TODO handle complex JSON values
-                        doc.setPropertyValue(key, value);
+                        Object json = isMaybeJSON(value);
+                        if (json != null) {
+                            doc.setPropertyValue(key, json);
+                        } else {
+                            doc.setPropertyValue(key, value);
+                        }
                     }
                 }
             }

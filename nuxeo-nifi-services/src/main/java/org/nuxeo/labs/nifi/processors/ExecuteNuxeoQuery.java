@@ -57,7 +57,7 @@ import org.nuxeo.client.spi.NuxeoClientException;
         @ReadsAttribute(attribute = "nx-sort-by", description = "Sort by field"),
         @ReadsAttribute(attribute = "nx-sort-order", description = "Sort order to use (ASC, DESC)"),
         @ReadsAttribute(attribute = "nx-query-params", description = "Query parameters to use") })
-@WritesAttributes({ @WritesAttribute(attribute = "nx-docid", description = "Document ID") })
+@WritesAttributes({ @WritesAttribute(attribute = NuxeoAttributes.VAR_DOC_ID, description = "Document ID") })
 @TriggerWhenEmpty
 @InputRequirement(Requirement.INPUT_ALLOWED)
 public class ExecuteNuxeoQuery extends AbstractNuxeoProcessor {
@@ -155,6 +155,7 @@ public class ExecuteNuxeoQuery extends AbstractNuxeoProcessor {
         descriptors.add(SORT_BY);
         descriptors.add(SORT_ORDER);
         descriptors.add(QUERY_PARAMS);
+        descriptors.add(FILTER_SCHEMAS);
         this.descriptors = Collections.unmodifiableList(descriptors);
 
         final Set<Relationship> relationships = new HashSet<Relationship>();

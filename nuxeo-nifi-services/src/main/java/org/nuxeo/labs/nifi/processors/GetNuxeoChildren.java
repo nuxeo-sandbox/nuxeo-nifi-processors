@@ -67,6 +67,7 @@ public class GetNuxeoChildren extends AbstractNuxeoProcessor {
         descriptors.add(NUXEO_CLIENT_SERVICE);
         descriptors.add(TARGET_REPO);
         descriptors.add(DOC_PATH);
+        descriptors.add(FILTER_SCHEMAS);
         this.descriptors = Collections.unmodifiableList(descriptors);
 
         final Set<Relationship> relationships = new HashSet<Relationship>();
@@ -83,7 +84,7 @@ public class GetNuxeoChildren extends AbstractNuxeoProcessor {
         // Get target path
         String docId = getArg(context, flowFile, VAR_DOC_ID, null);
         String path = getArg(context, flowFile, VAR_PATH, DOC_PATH);
-        
+
         if (StringUtils.isBlank(docId) && StringUtils.isBlank(path)) {
             return;
         }

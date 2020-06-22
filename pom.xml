@@ -18,13 +18,14 @@
 
   <groupId>org.nuxeo.labs.nifi</groupId>
   <artifactId>nuxeo-nifi-processors-parent</artifactId>
+  <name>Apache Nifi :: Nuxeo Processors</name>
   <version>10.10</version>
   <packaging>pom</packaging>
 
   <properties>
-    <nifiVersion>1.10.0</nifiVersion>
+    <nifiVersion>1.11.4</nifiVersion>
     <nuxeoVersion>10.10</nuxeoVersion>
-    <nuxeoJavaClient>3.4.0</nuxeoJavaClient>
+    <nuxeoJavaClient>3.5.0</nuxeoJavaClient>
   </properties>
 
   <modules>
@@ -110,18 +111,5 @@
       </snapshots>
     </pluginRepository>
   </pluginRepositories>
-
-  <!--
-    <distributionManagement>
-    <repository>
-      <id>apache.releases.https</id>
-      <url>http://maven.nuxeo.org/nexus/content/groups/public</url>
-    </repository>
-    <snapshotRepository>
-      <id>apache.snapshots.https</id>
-      <url>http://maven.nuxeo.org/nexus/content/groups/public-snapshot</url>
-    </snapshotRepository>
-  </distributionManagement>
-   -->
 
 </project>

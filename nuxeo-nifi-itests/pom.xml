@@ -17,6 +17,7 @@
   </parent>
 
   <artifactId>nuxeo-nifi-itests</artifactId>
+  <name>Apache Nifi :: Nuxeo Processors :: Integration Tests</name>
   <packaging>jar</packaging>
 
   <dependencies>

@@ -9,6 +9,7 @@
 	</parent>
 
 	<artifactId>nuxeo-nifi-api-nar</artifactId>
+  <name>Apache Nifi :: Nuxeo Processors :: API NAR</name>
 	<packaging>nar</packaging>
 
 	<properties>

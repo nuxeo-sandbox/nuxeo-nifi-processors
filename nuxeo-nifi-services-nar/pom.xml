@@ -17,6 +17,7 @@
 	</parent>
 
 	<artifactId>nuxeo-nifi-services-nar</artifactId>
+  <name>Apache Nifi :: Nuxeo Processors :: Services NAR</name>
 	<packaging>nar</packaging>
 
 	<properties>

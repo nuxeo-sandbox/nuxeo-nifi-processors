@@ -45,11 +45,12 @@ import org.nuxeo.client.objects.blob.StreamBlob;
 import org.nuxeo.client.spi.NuxeoClientException;
 
 @Tags({ "nuxeo", "operation", "execution", "blob" })
-@CapabilityDescription("Execute an operation with a Blob in Nuxeo.")
+@CapabilityDescription("Execute an operation with a Blob as input.")
 @SeeAlso({ StartNuxeoWorkflow.class })
-// TODO
-@ReadsAttributes({ @ReadsAttribute(attribute = "", description = "") })
-@WritesAttributes({ @WritesAttribute(attribute = NuxeoAttributes.VAR_DOC_ID, description = "Document ID") })
+@ReadsAttributes({ @ReadsAttribute(attribute = "filename", description = "File name assocaited with flowfile"),
+        @ReadsAttribute(attribute = NuxeoAttributes.VAR_OPERATION, description = "Nuxeo operation identifier") })
+@WritesAttributes({ @WritesAttribute(attribute = NuxeoAttributes.VAR_DOC_ID, description = "Document ID"),
+        @WritesAttribute(attribute = NuxeoAttributes.VAR_ENTITY_TYPE, description = "Document entity type") })
 @InputRequirement(Requirement.INPUT_REQUIRED)
 public class NuxeoBlobOperation extends AbstractNuxeoOperationProcessor {
 
@@ -64,6 +65,7 @@ public class NuxeoBlobOperation extends AbstractNuxeoOperationProcessor {
         descriptors.add(TARGET_REPO);
         descriptors.add(OPERATION_ID);
         descriptors.add(SPLIT_RESPONSE);
+        descriptors.add(FILTER_SCHEMAS);
         this.descriptors = Collections.unmodifiableList(descriptors);
 
         final Set<Relationship> relationships = new HashSet<Relationship>();

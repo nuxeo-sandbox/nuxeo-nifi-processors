@@ -47,9 +47,13 @@ import org.nuxeo.client.spi.NuxeoClientException;
 @Tags({ "nuxeo", "put", "document" })
 @CapabilityDescription("Update a Nuxeo Document in the repository.")
 @SeeAlso({ CreateNuxeoDocument.class, GetNuxeoDocument.class })
-// TODO
-@ReadsAttributes({ @ReadsAttribute(attribute = "", description = "") })
-@WritesAttributes({ @WritesAttribute(attribute = NuxeoAttributes.VAR_DOC_ID, description = "Document ID") })
+@ReadsAttributes({
+        @ReadsAttribute(attribute = NuxeoAttributes.VAR_ENTITY_TYPE, description = "Document entity type, must be: "
+                + EntityTypes.DOCUMENT),
+        @ReadsAttribute(attribute = NuxeoAttributes.VAR_DOC_ID, description = "Document ID to use if the path isn't specified"),
+        @ReadsAttribute(attribute = NuxeoAttributes.VAR_PATH, description = "Path to use, nx-docid overrides") })
+@WritesAttributes({ @WritesAttribute(attribute = NuxeoAttributes.VAR_DOC_ID, description = "Document ID"),
+        @WritesAttribute(attribute = NuxeoAttributes.VAR_ENTITY_TYPE, description = "Document entity type") })
 @InputRequirement(Requirement.INPUT_REQUIRED)
 public class UpdateNuxeoDocument extends AbstractNuxeoDynamicProcessor {
 
@@ -107,7 +111,12 @@ public class UpdateNuxeoDocument extends AbstractNuxeoDynamicProcessor {
                 for (PropertyDescriptor desc : this.dynamicProperties) {
                     String key = desc.getName();
                     String value = getArg(context, flowFile, null, desc);
-                    doc.setPropertyValue(key, value);
+                    Object json = isMaybeJSON(value);
+                    if (json != null) {
+                        doc.setPropertyValue(key, json);
+                    } else {
+                        doc.setPropertyValue(key, value);
+                    }
                 }
             }
 

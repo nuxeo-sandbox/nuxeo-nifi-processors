@@ -45,8 +45,8 @@ import org.nuxeo.client.objects.Operation;
 @Tags({ "nuxeo", "operation", "execution" })
 @CapabilityDescription("Execute an operation in Nuxeo.")
 @SeeAlso({ StartNuxeoWorkflow.class })
-// TODO
-@ReadsAttributes({ @ReadsAttribute(attribute = "", description = "") })
+@ReadsAttributes({
+        @ReadsAttribute(attribute = NuxeoAttributes.VAR_OPERATION, description = "Nuxeo operation identifier") })
 @WritesAttributes({ @WritesAttribute(attribute = NuxeoAttributes.VAR_DOC_ID, description = "Document ID") })
 @TriggerWhenEmpty
 @InputRequirement(Requirement.INPUT_ALLOWED)
@@ -63,6 +63,7 @@ public class NuxeoOperation extends AbstractNuxeoOperationProcessor {
         descriptors.add(TARGET_REPO);
         descriptors.add(OPERATION_ID);
         descriptors.add(SPLIT_RESPONSE);
+        descriptors.add(FILTER_SCHEMAS);
         this.descriptors = Collections.unmodifiableList(descriptors);
 
         final Set<Relationship> relationships = new HashSet<Relationship>();

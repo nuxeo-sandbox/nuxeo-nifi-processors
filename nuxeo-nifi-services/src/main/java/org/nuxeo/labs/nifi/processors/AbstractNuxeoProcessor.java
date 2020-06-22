@@ -1,9 +1,11 @@
 package org.nuxeo.labs.nifi.processors;
 
+import java.io.IOException;
 import java.nio.charset.Charset;
 import java.util.List;
 import java.util.Set;
 
+import org.apache.commons.lang3.StringUtils;
 import org.apache.nifi.annotation.lifecycle.OnScheduled;
 import org.apache.nifi.annotation.lifecycle.OnStopped;
 import org.apache.nifi.components.PropertyDescriptor;
@@ -19,6 +21,12 @@ import org.nuxeo.client.NuxeoClient;
 import org.nuxeo.client.objects.Document;
 import org.nuxeo.client.objects.Repository;
 import org.nuxeo.labs.nifi.NuxeoClientService;
+
+import com.fasterxml.jackson.databind.DeserializationFeature;
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.SerializationFeature;
+import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
 
 public abstract class AbstractNuxeoProcessor extends AbstractProcessor implements NuxeoAttributes {
 
@@ -96,6 +104,7 @@ public abstract class AbstractNuxeoProcessor extends AbstractProcessor implement
                                                                                             .description(
                                                                                                     "Only include the specified schema attributes.")
                                                                                             .required(false)
+                                                                                            .defaultValue("*")
                                                                                             .addValidator(
                                                                                                     StandardValidators.createListValidator(
                                                                                                             true, true,
@@ -124,6 +133,8 @@ public abstract class AbstractNuxeoProcessor extends AbstractProcessor implement
 
     protected Set<Relationship> relationships;
 
+    private ObjectMapper objectMapper;
+
     protected NuxeoClient getClient(final ProcessContext context) {
         this.nuxeoClientService = context.getProperty(NUXEO_CLIENT_SERVICE)
                                          .asControllerService(NuxeoClientService.class);
@@ -145,11 +156,16 @@ public abstract class AbstractNuxeoProcessor extends AbstractProcessor implement
             repo = pval.getValue();
         }
 
-        // TODO: specify schemas per processor
+        String schemas = "*";
+        if (this.descriptors.contains(FILTER_SCHEMAS)) {
+            schemas = context.getProperty(FILTER_SCHEMAS).getValue();
+        }
+
+        NuxeoClient client = this.nuxeoClient.schemas(schemas);
         if (repo == null) {
-            return this.nuxeoClient.schemas("*").repository();
+            return client.repository();
         } else {
-            return this.nuxeoClient.schemas("*").repository(repo);
+            return client.repository(repo);
         }
     }
 
@@ -189,18 +205,19 @@ public abstract class AbstractNuxeoProcessor extends AbstractProcessor implement
         }
         this.nuxeoClient = null;
         this.nuxeoClientService = null;
+        this.objectMapper = null;
     }
 
     protected String getArg(ProcessContext ctx, FlowFile ff, String key, PropertyDescriptor desc) {
-        if (key != null && ff != null && ff.getAttribute(key) != null) {
-            return ff.getAttribute(key);
-        }
         if (desc != null) {
             PropertyValue pdv = ctx.getProperty(desc);
             if (pdv.isSet()) {
                 PropertyValue val = desc.isExpressionLanguageSupported() ? pdv.evaluateAttributeExpressions(ff) : pdv;
                 return val.getValue();
             }
+        }
+        if (key != null && ff != null && ff.getAttribute(key) != null) {
+            return ff.getAttribute(key);
         }
         return null;
     }
@@ -209,9 +226,34 @@ public abstract class AbstractNuxeoProcessor extends AbstractProcessor implement
         String docId = getArg(context, flowFile, VAR_DOC_ID, DOC_ID);
         String path = getArg(context, flowFile, VAR_PATH, DOC_PATH);
 
+        if (StringUtils.isBlank(docId) && StringUtils.isBlank(path)) {
+            return null;
+        }
+
         Repository rep = getRepository(context);
         Document doc = docId != null ? rep.fetchDocumentById(docId) : rep.fetchDocumentByPath(path);
         return doc;
+    }
+
+    protected JsonNode isMaybeJSON(String val) {
+        // Expensive but guaranteed to work with valid JSON
+        try {
+            final ObjectMapper mapper = objectMapper();
+            return mapper.readTree(val);
+        } catch (IOException e) {
+            return null;
+        }
+    }
+
+    protected ObjectMapper objectMapper() {
+        if (this.objectMapper != null) {
+            return this.objectMapper;
+        }
+        this.objectMapper = new ObjectMapper();
+        this.objectMapper.configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, false);
+        this.objectMapper.registerModule(new JavaTimeModule());
+        this.objectMapper.configure(SerializationFeature.WRITE_DATES_AS_TIMESTAMPS, false);
+        return this.objectMapper;
     }
 
 }

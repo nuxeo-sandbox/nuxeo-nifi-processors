@@ -52,14 +52,12 @@ import org.nuxeo.client.spi.NuxeoClientException;
 @Tags({ "nuxeo", "put", "attach", "blob" })
 @CapabilityDescription("Attach a blob to a Nuxeo Document.")
 @SeeAlso({ UploadNuxeoBlob.class })
-@ReadsAttributes({
-        @ReadsAttribute(attribute = NuxeoAttributes.VAR_BATCH, description = "Upload batch identifier {nx-batch}"),
-        @ReadsAttribute(attribute = NuxeoAttributes.VAR_INDEX, description = "Upload index {nx-index}"),
-        @ReadsAttribute(attribute = NuxeoAttributes.VAR_XPATH, description = "Property XPath {nx-xpath}"),
-        @ReadsAttribute(attribute = NuxeoAttributes.VAR_ENTITY_TYPE, description = "Document entity type {nx-entity}") })
-@WritesAttributes({
-        @WritesAttribute(attribute = NuxeoAttributes.VAR_ENTITY_TYPE, description = "Document entity type {nx-entity}"),
-        @WritesAttribute(attribute = NuxeoAttributes.VAR_DOC_ID, description = "Document ID {nx-docid}") })
+@ReadsAttributes({ @ReadsAttribute(attribute = NuxeoAttributes.VAR_BATCH, description = "Upload batch identifier"),
+        @ReadsAttribute(attribute = NuxeoAttributes.VAR_INDEX, description = "Upload index"),
+        @ReadsAttribute(attribute = NuxeoAttributes.VAR_XPATH, description = "Property XPath"),
+        @ReadsAttribute(attribute = NuxeoAttributes.VAR_ENTITY_TYPE, description = "Document entity type") })
+@WritesAttributes({ @WritesAttribute(attribute = NuxeoAttributes.VAR_ENTITY_TYPE, description = "Document entity type"),
+        @WritesAttribute(attribute = NuxeoAttributes.VAR_DOC_ID, description = "Document ID") })
 @InputRequirement(Requirement.INPUT_REQUIRED)
 public class AttachNuxeoBlob extends AbstractNuxeoDynamicProcessor {
 

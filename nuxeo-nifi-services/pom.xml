@@ -17,6 +17,7 @@
   </parent>
 
   <artifactId>nuxeo-nifi-services</artifactId>
+  <name>Apache Nifi :: Nuxeo Processors :: Services</name>
   <packaging>jar</packaging>
 
   <dependencies>

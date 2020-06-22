@@ -91,7 +91,7 @@ public class StartNuxeoWorkflow extends AbstractNuxeoProcessor {
         String workflowName = getArg(context, flowFile, "nx-workflow", WORKFLOW);
         String docId = getArg(context, flowFile, VAR_DOC_ID, null);
         String path = getArg(context, flowFile, VAR_PATH, DOC_PATH);
-        
+
         if (StringUtils.isBlank(docId) && StringUtils.isBlank(path)) {
             return;
         } else if (flowFile == null) {
