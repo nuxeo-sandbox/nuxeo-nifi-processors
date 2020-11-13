@@ -92,7 +92,7 @@ public class UploadNuxeoBlob extends AbstractNuxeoProcessor {
                                                                                                 ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
                                                                                         .required(false)
                                                                                         .addValidator(
-                                                                                                StandardValidators.INTEGER_VALIDATOR)
+                                                                                                StandardValidators.POSITIVE_INTEGER_VALIDATOR)
                                                                                         .build();
 
     @Override
@@ -160,7 +160,7 @@ public class UploadNuxeoBlob extends AbstractNuxeoProcessor {
             }
 
             session.putAttribute(blobFile, VAR_BATCH, batch.getBatchId());
-            session.putAttribute(blobFile, VAR_INDEX, "0");
+            session.putAttribute(blobFile, VAR_INDEX, index);
             session.transfer(blobFile, REL_SUCCESS);
         } catch (NuxeoClientException nce) {
             session.remove(blobFile);

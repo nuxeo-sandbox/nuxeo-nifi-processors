@@ -62,9 +62,9 @@ import org.nuxeo.client.spi.NuxeoClientException;
 public class AttachNuxeoBlob extends AbstractNuxeoDynamicProcessor {
 
     public static final PropertyDescriptor XPATH = new PropertyDescriptor.Builder().name("XPATH")
-                                                                                   .displayName("Property X-Path")
+                                                                                   .displayName("Blob X-Path")
                                                                                    .description(
-                                                                                           "Document x-path property to update. {nx-xpath}")
+                                                                                           "Document x-path blob property to update. {nx-xpath}")
                                                                                    .expressionLanguageSupported(
                                                                                            ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
                                                                                    .defaultValue(

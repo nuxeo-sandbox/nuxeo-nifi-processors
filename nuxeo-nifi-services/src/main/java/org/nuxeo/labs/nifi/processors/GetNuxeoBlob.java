@@ -31,7 +31,6 @@ import org.apache.nifi.annotation.behavior.InputRequirement;
 import org.apache.nifi.annotation.behavior.InputRequirement.Requirement;
 import org.apache.nifi.annotation.behavior.ReadsAttribute;
 import org.apache.nifi.annotation.behavior.ReadsAttributes;
-import org.apache.nifi.annotation.behavior.TriggerWhenEmpty;
 import org.apache.nifi.annotation.behavior.WritesAttribute;
 import org.apache.nifi.annotation.behavior.WritesAttributes;
 import org.apache.nifi.annotation.documentation.CapabilityDescription;
@@ -61,7 +60,6 @@ import org.nuxeo.client.spi.NuxeoClientException;
 @WritesAttributes({ @WritesAttribute(attribute = NuxeoAttributes.VAR_DOC_ID, description = "Added if not present"),
         @WritesAttribute(attribute = NuxeoAttributes.VAR_FILENAME, description = "Filename of the blob"),
         @WritesAttribute(attribute = NuxeoAttributes.VAR_ERROR, description = "Error set if problem occurs") })
-@TriggerWhenEmpty
 @InputRequirement(Requirement.INPUT_ALLOWED)
 public class GetNuxeoBlob extends AbstractNuxeoProcessor {
 
@@ -97,6 +95,9 @@ public class GetNuxeoBlob extends AbstractNuxeoProcessor {
     @Override
     public void onTrigger(final ProcessContext context, final ProcessSession session) throws ProcessException {
         FlowFile flowFile = session.get();
+        if (flowFile == null) {
+            return;
+        }
 
         // Get target blob
         String xpath = getArg(context, flowFile, VAR_XPATH, XPATH);
@@ -108,7 +109,7 @@ public class GetNuxeoBlob extends AbstractNuxeoProcessor {
         }
 
         // Create success path
-        FlowFile blobFile = flowFile == null ? session.create() : session.create(flowFile);
+        FlowFile blobFile = session.create(flowFile);
         try {
             // Invoke document operation
             Repository rep = getRepository(context);
@@ -127,18 +128,12 @@ public class GetNuxeoBlob extends AbstractNuxeoProcessor {
             session.transfer(blobFile, REL_SUCCESS);
         } catch (NuxeoClientException nce) {
             session.remove(blobFile);
-
-            if (flowFile == null) {
-                flowFile = session.create();
-            }
             getLogger().error("Unable to retrieve blob", nce);
             session.putAttribute(flowFile, VAR_ERROR, String.valueOf(nce));
             session.transfer(flowFile, REL_FAILURE);
             return;
         }
 
-        if (flowFile != null) {
-            session.transfer(flowFile, REL_ORIGINAL);
-        }
+        session.transfer(flowFile, REL_ORIGINAL);
     }
 }

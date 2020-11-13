@@ -68,6 +68,7 @@ public class GetNuxeoChildren extends AbstractNuxeoProcessor {
         descriptors.add(TARGET_REPO);
         descriptors.add(DOC_PATH);
         descriptors.add(FILTER_SCHEMAS);
+        descriptors.add(EMPTY_INPUT);
         this.descriptors = Collections.unmodifiableList(descriptors);
 
         final Set<Relationship> relationships = new HashSet<Relationship>();
@@ -80,6 +81,9 @@ public class GetNuxeoChildren extends AbstractNuxeoProcessor {
     @Override
     public void onTrigger(final ProcessContext context, final ProcessSession session) throws ProcessException {
         FlowFile flowFile = session.get();
+        if (flowFile == null && !context.getProperty(EMPTY_INPUT).asBoolean()) {
+            return;
+        }
 
         // Get target path
         String docId = getArg(context, flowFile, VAR_DOC_ID, null);

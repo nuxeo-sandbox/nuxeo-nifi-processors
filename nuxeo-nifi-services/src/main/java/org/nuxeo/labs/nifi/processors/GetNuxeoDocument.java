@@ -26,12 +26,11 @@ import java.util.Set;
 
 import org.apache.commons.io.IOUtils;
 import org.apache.nifi.annotation.behavior.InputRequirement;
+import org.apache.nifi.annotation.behavior.InputRequirement.Requirement;
 import org.apache.nifi.annotation.behavior.ReadsAttribute;
 import org.apache.nifi.annotation.behavior.ReadsAttributes;
-import org.apache.nifi.annotation.behavior.TriggerWhenEmpty;
 import org.apache.nifi.annotation.behavior.WritesAttribute;
 import org.apache.nifi.annotation.behavior.WritesAttributes;
-import org.apache.nifi.annotation.behavior.InputRequirement.Requirement;
 import org.apache.nifi.annotation.documentation.CapabilityDescription;
 import org.apache.nifi.annotation.documentation.SeeAlso;
 import org.apache.nifi.annotation.documentation.Tags;
@@ -55,7 +54,6 @@ import org.nuxeo.client.spi.NuxeoClientException;
         @WritesAttribute(attribute = NuxeoAttributes.VAR_DOC_ID, description = "Added for each document retreived"),
         @WritesAttribute(attribute = NuxeoAttributes.VAR_ENTITY_TYPE, description = "Entity type of content retrieved"),
         @WritesAttribute(attribute = NuxeoAttributes.VAR_ERROR, description = "Error set if problem occurs") })
-@TriggerWhenEmpty
 @InputRequirement(Requirement.INPUT_ALLOWED)
 public class GetNuxeoDocument extends AbstractNuxeoProcessor {
 
@@ -77,17 +75,15 @@ public class GetNuxeoDocument extends AbstractNuxeoProcessor {
     @Override
     public void onTrigger(final ProcessContext context, final ProcessSession session) throws ProcessException {
         FlowFile flowFile = session.get();
+        if (flowFile == null) {
+            return;
+        }
 
         try {
             // Invoke document operation
             Document doc = getDocument(context, flowFile);
             if (doc == null) {
                 return;
-            }
-
-            // Create if origin is empty
-            if (flowFile == null) {
-                flowFile = session.create();
             }
 
             // Convert and write to JSON

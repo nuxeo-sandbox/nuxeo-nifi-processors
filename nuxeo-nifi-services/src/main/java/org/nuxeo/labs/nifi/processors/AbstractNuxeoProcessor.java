@@ -111,6 +111,18 @@ public abstract class AbstractNuxeoProcessor extends AbstractProcessor implement
                                                                                                             StandardValidators.ATTRIBUTE_KEY_VALIDATOR))
                                                                                             .build();
 
+    public static final PropertyDescriptor EMPTY_INPUT = new PropertyDescriptor.Builder().name("EMPTY_INPUT")
+                                                                                         .displayName(
+                                                                                                 "Allow Empty Input")
+                                                                                         .description(
+                                                                                                 "Allow an empty flowfile to trigger the processor.")
+                                                                                         .allowableValues(YES, NO)
+                                                                                         .defaultValue("false")
+                                                                                         .required(true)
+                                                                                         .addValidator(
+                                                                                                 StandardValidators.BOOLEAN_VALIDATOR)
+                                                                                         .build();
+
     public static final Relationship REL_SUCCESS = new Relationship.Builder().name("success")
                                                                              .description("Document retrieved")
                                                                              .build();
@@ -213,9 +225,6 @@ public abstract class AbstractNuxeoProcessor extends AbstractProcessor implement
             PropertyValue pdv = ctx.getProperty(desc);
             if (pdv.isSet()) {
                 if (desc.isExpressionLanguageSupported()) {
-                    if (ff == null) {
-                        getLogger().error("Attribute expression requires flowfile for descriptor: " + desc);
-                    }
                     pdv = pdv.evaluateAttributeExpressions(ff);
                 }
                 return pdv.getValue();
@@ -231,8 +240,7 @@ public abstract class AbstractNuxeoProcessor extends AbstractProcessor implement
         if (desc != null) {
             PropertyValue pdv = ctx.getProperty(desc);
             if (pdv.isSet()) {
-                PropertyValue val = desc.isExpressionLanguageSupported() ? pdv.evaluateAttributeExpressions(ff) : pdv;
-                return val;
+                return desc.isExpressionLanguageSupported() ? pdv.evaluateAttributeExpressions(ff) : pdv;
             }
         }
         return null;

@@ -64,6 +64,7 @@ public class NuxeoOperation extends AbstractNuxeoOperationProcessor {
         descriptors.add(OPERATION_ID);
         descriptors.add(SPLIT_RESPONSE);
         descriptors.add(FILTER_SCHEMAS);
+        descriptors.add(EMPTY_INPUT);
         this.descriptors = Collections.unmodifiableList(descriptors);
 
         final Set<Relationship> relationships = new HashSet<Relationship>();
@@ -76,6 +77,9 @@ public class NuxeoOperation extends AbstractNuxeoOperationProcessor {
     @Override
     public void onTrigger(final ProcessContext context, final ProcessSession session) throws ProcessException {
         FlowFile flowFile = session.get();
+        if (flowFile == null && !context.getProperty(EMPTY_INPUT).asBoolean()) {
+            return;
+        }
 
         // Evaluate target operation
         String opId = getArg(context, flowFile, VAR_OPERATION, OPERATION_ID);

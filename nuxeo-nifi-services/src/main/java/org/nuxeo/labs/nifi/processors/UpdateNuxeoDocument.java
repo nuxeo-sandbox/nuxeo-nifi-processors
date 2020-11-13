@@ -72,14 +72,6 @@ public class UpdateNuxeoDocument extends AbstractNuxeoDynamicProcessor {
     }
 
     @Override
-    protected PropertyDescriptor getSupportedDynamicPropertyDescriptor(String propertyDescriptorName) {
-        if (!propertyDescriptorName.matches(PROP_KEY_PATTERN)) {
-            return null;
-        }
-        return super.getSupportedDynamicPropertyDescriptor(propertyDescriptorName);
-    }
-
-    @Override
     public void onTrigger(final ProcessContext context, final ProcessSession session) throws ProcessException {
         FlowFile flowFile = session.get();
         if (flowFile == null) {

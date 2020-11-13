@@ -27,7 +27,6 @@ import org.apache.nifi.annotation.behavior.InputRequirement;
 import org.apache.nifi.annotation.behavior.InputRequirement.Requirement;
 import org.apache.nifi.annotation.behavior.ReadsAttribute;
 import org.apache.nifi.annotation.behavior.ReadsAttributes;
-import org.apache.nifi.annotation.behavior.TriggerWhenEmpty;
 import org.apache.nifi.annotation.behavior.WritesAttribute;
 import org.apache.nifi.annotation.behavior.WritesAttributes;
 import org.apache.nifi.annotation.documentation.CapabilityDescription;
@@ -55,7 +54,6 @@ import org.nuxeo.client.spi.NuxeoClientException;
 @WritesAttributes({
         @WritesAttribute(attribute = "nx-workflow-id", description = "ID of workflow that has been started."),
         @WritesAttribute(attribute = NuxeoAttributes.VAR_ERROR, description = "Error set if problem occurs") })
-@TriggerWhenEmpty
 @InputRequirement(Requirement.INPUT_ALLOWED)
 public class StartNuxeoWorkflow extends AbstractNuxeoProcessor {
 
@@ -86,6 +84,9 @@ public class StartNuxeoWorkflow extends AbstractNuxeoProcessor {
     @Override
     public void onTrigger(final ProcessContext context, final ProcessSession session) throws ProcessException {
         FlowFile flowFile = session.get();
+        if (flowFile == null) {
+            return;
+        }
 
         // Evaluate target path
         String workflowName = getArg(context, flowFile, "nx-workflow", WORKFLOW);
@@ -94,8 +95,6 @@ public class StartNuxeoWorkflow extends AbstractNuxeoProcessor {
 
         if (StringUtils.isBlank(docId) && StringUtils.isBlank(path)) {
             return;
-        } else if (flowFile == null) {
-            flowFile = session.create();
         }
 
         try {

@@ -16,23 +16,28 @@
  */
 package org.nuxeo.labs.nifi.processors;
 
+import java.io.IOException;
+import java.io.OutputStream;
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 
+import org.apache.commons.io.IOUtils;
 import org.apache.nifi.annotation.behavior.InputRequirement;
 import org.apache.nifi.annotation.behavior.InputRequirement.Requirement;
 import org.apache.nifi.annotation.behavior.ReadsAttribute;
 import org.apache.nifi.annotation.behavior.ReadsAttributes;
-import org.apache.nifi.annotation.behavior.TriggerWhenEmpty;
 import org.apache.nifi.annotation.behavior.WritesAttribute;
 import org.apache.nifi.annotation.behavior.WritesAttributes;
 import org.apache.nifi.annotation.documentation.CapabilityDescription;
 import org.apache.nifi.annotation.documentation.SeeAlso;
 import org.apache.nifi.annotation.documentation.Tags;
 import org.apache.nifi.components.PropertyDescriptor;
+import org.apache.nifi.components.PropertyValue;
 import org.apache.nifi.expression.ExpressionLanguageScope;
 import org.apache.nifi.flowfile.FlowFile;
 import org.apache.nifi.processor.ProcessContext;
@@ -53,7 +58,6 @@ import org.nuxeo.client.spi.NuxeoClientException;
         @ReadsAttribute(attribute = NuxeoAttributes.VAR_TITLE, description = "Document title") })
 @WritesAttributes({ @WritesAttribute(attribute = NuxeoAttributes.VAR_ENTITY_TYPE, description = "Document entity type"),
         @WritesAttribute(attribute = NuxeoAttributes.VAR_DOC_ID, description = "Document ID") })
-@TriggerWhenEmpty
 @InputRequirement(Requirement.INPUT_ALLOWED)
 public class CreateNuxeoDocument extends AbstractNuxeoDynamicProcessor {
 
@@ -68,6 +72,30 @@ public class CreateNuxeoDocument extends AbstractNuxeoDynamicProcessor {
                                                                                               StandardValidators.NON_BLANK_VALIDATOR)
                                                                                       .build();
 
+    public static final PropertyDescriptor ATTACH_BLOB = new PropertyDescriptor.Builder().name("ATTACH_BLOB")
+                                                                                         .displayName("Attach Blob")
+                                                                                         .description(
+                                                                                                 "Attach uplaoded blob to document.")
+                                                                                         .allowableValues(YES, NO)
+                                                                                         .defaultValue("false")
+                                                                                         .required(true)
+                                                                                         .addValidator(
+                                                                                                 StandardValidators.BOOLEAN_VALIDATOR)
+                                                                                         .build();
+
+    public static final PropertyDescriptor XPATH = new PropertyDescriptor.Builder().name("XPATH")
+                                                                                   .displayName("Blob X-Path")
+                                                                                   .description(
+                                                                                           "Document x-path blob property to update. {nx-xpath}")
+                                                                                   .expressionLanguageSupported(
+                                                                                           ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
+                                                                                   .defaultValue(
+                                                                                           Document.DEFAULT_FILE_CONTENT)
+                                                                                   .required(false)
+                                                                                   .addValidator(
+                                                                                           StandardValidators.NON_BLANK_VALIDATOR)
+                                                                                   .build();
+
     @Override
     protected void init(final ProcessorInitializationContext context) {
         final List<PropertyDescriptor> descriptors = new ArrayList<PropertyDescriptor>();
@@ -77,6 +105,8 @@ public class CreateNuxeoDocument extends AbstractNuxeoDynamicProcessor {
         descriptors.add(DOC_NAME);
         descriptors.add(DOC_TYPE);
         descriptors.add(DOC_TITLE);
+        descriptors.add(ATTACH_BLOB);
+        descriptors.add(XPATH);
         this.descriptors = Collections.unmodifiableList(descriptors);
 
         final Set<Relationship> relationships = new HashSet<Relationship>();
@@ -86,16 +116,11 @@ public class CreateNuxeoDocument extends AbstractNuxeoDynamicProcessor {
     }
 
     @Override
-    protected PropertyDescriptor getSupportedDynamicPropertyDescriptor(String propertyDescriptorName) {
-        if (!propertyDescriptorName.matches(PROP_KEY_PATTERN)) {
-            return null;
-        }
-        return super.getSupportedDynamicPropertyDescriptor(propertyDescriptorName);
-    }
-
-    @Override
     public void onTrigger(final ProcessContext context, final ProcessSession session) throws ProcessException {
         FlowFile flowFile = session.get();
+        if (flowFile == null) {
+            return;
+        }
 
         // Evaluate target path
         String path = getArg(context, flowFile, VAR_PATH, DOC_PATH);
@@ -104,10 +129,6 @@ public class CreateNuxeoDocument extends AbstractNuxeoDynamicProcessor {
         String title = getArg(context, flowFile, VAR_TITLE, DOC_TITLE);
         if (title == null) {
             title = name;
-        }
-
-        if (flowFile == null) {
-            flowFile = session.create();
         }
 
         try {
@@ -130,8 +151,36 @@ public class CreateNuxeoDocument extends AbstractNuxeoDynamicProcessor {
                 }
             }
 
+            // Attach blob?
+            PropertyValue attach = getValue(context, flowFile, ATTACH_BLOB);
+            if (attach != null && attach.asBoolean()) {
+                // Blob properties
+                Map<String, Object> props = new HashMap<>();
+                String xpath = getArg(context, flowFile, VAR_XPATH, XPATH);
+                String batch = getArg(context, flowFile, VAR_BATCH, null);
+                String index = getArg(context, flowFile, VAR_INDEX, null);
+
+                if (xpath != null && batch != null && index != null) {
+                    props.put("upload-batch", batch);
+                    props.put("upload-fileId", index);
+
+                    // Attach the blob
+                    doc.setPropertyValue(xpath, props);
+                }
+            }
+
             // Create document
             doc = getRepository(context).createDocumentByPath(path, doc);
+
+            // Convert and write to JSON
+            String json = this.nuxeoClient.getConverterFactory().writeJSON(doc);
+            try (OutputStream out = session.write(flowFile)) {
+                IOUtils.write(json, out, UTF8);
+            } catch (IOException e) {
+                session.putAttribute(flowFile, VAR_ERROR, e.getMessage());
+                session.transfer(flowFile, REL_FAILURE);
+                return;
+            }
 
             session.putAttribute(flowFile, VAR_ENTITY_TYPE, doc.getEntityType());
             session.putAttribute(flowFile, VAR_DOC_ID, doc.getId());
