@@ -15,6 +15,7 @@
 org.nuxeo.labs.nifi.processors.AttachNuxeoBlob
 org.nuxeo.labs.nifi.processors.CreateNuxeoDocument
 org.nuxeo.labs.nifi.processors.DeleteNuxeoDocument
+org.nuxeo.labs.nifi.processors.ExecuteNuxeoPageProvider
 org.nuxeo.labs.nifi.processors.ExecuteNuxeoQuery
 org.nuxeo.labs.nifi.processors.GetNuxeoBlob
 org.nuxeo.labs.nifi.processors.GetNuxeoChildren

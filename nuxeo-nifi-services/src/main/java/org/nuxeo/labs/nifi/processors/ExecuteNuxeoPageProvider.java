@@ -50,8 +50,8 @@ import org.nuxeo.client.spi.NuxeoClientException;
 
 @Tags({ "nuxeo", "execute", "query" })
 @CapabilityDescription("Query the Nuxeo repository for a set of related documents.")
-@ReadsAttributes({ @ReadsAttribute(attribute = "nx-query", description = "NXQL to execute"),
-        @ReadsAttribute(attribute = "nx-page-size", description = "Paqe size to retreive"),
+@ReadsAttributes({ @ReadsAttribute(attribute = "nx-provider", description = "Page provider to execute"),
+        @ReadsAttribute(attribute = "nx-page-size", description = "Page size to retreive"),
         @ReadsAttribute(attribute = "nx-page-index", description = "Page index to start from"),
         @ReadsAttribute(attribute = "nx-max-results", description = "Max results to return"),
         @ReadsAttribute(attribute = "nx-sort-by", description = "Sort by field"),
@@ -60,17 +60,17 @@ import org.nuxeo.client.spi.NuxeoClientException;
 @WritesAttributes({ @WritesAttribute(attribute = NuxeoAttributes.VAR_DOC_ID, description = "Document ID") })
 @TriggerWhenEmpty
 @InputRequirement(Requirement.INPUT_ALLOWED)
-public class ExecuteNuxeoQuery extends AbstractNuxeoProcessor {
+public class ExecuteNuxeoPageProvider extends AbstractNuxeoProcessor {
 
-    public static final PropertyDescriptor QUERY = new PropertyDescriptor.Builder().name("QUERY")
-                                                                                   .displayName("Query")
-                                                                                   .description(
-                                                                                           "NXQL to execute. {nx-query}")
-                                                                                   .expressionLanguageSupported(
-                                                                                           ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
-                                                                                   .required(false)
-                                                                                   .addValidator(Validator.VALID)
-                                                                                   .build();
+    public static final PropertyDescriptor PROVIDER = new PropertyDescriptor.Builder().name("PROVIDER")
+                                                                                      .displayName("Provider")
+                                                                                      .description(
+                                                                                              "Page provider to execute. {nx-provider}")
+                                                                                      .expressionLanguageSupported(
+                                                                                              ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
+                                                                                      .required(false)
+                                                                                      .addValidator(Validator.VALID)
+                                                                                      .build();
 
     public static final PropertyDescriptor PAGE_SIZE = new PropertyDescriptor.Builder().name("PAGE_SIZE")
                                                                                        .displayName("Page Size")
@@ -148,7 +148,7 @@ public class ExecuteNuxeoQuery extends AbstractNuxeoProcessor {
         final List<PropertyDescriptor> descriptors = new ArrayList<PropertyDescriptor>();
         descriptors.add(NUXEO_CLIENT_SERVICE);
         descriptors.add(TARGET_REPO);
-        descriptors.add(QUERY);
+        descriptors.add(PROVIDER);
         descriptors.add(PAGE_SIZE);
         descriptors.add(PAGE_INDEX);
         descriptors.add(MAX_RESULTS);
@@ -175,7 +175,7 @@ public class ExecuteNuxeoQuery extends AbstractNuxeoProcessor {
         }
 
         // Extract arguments
-        String query = getArg(context, flowFile, "nx-query", QUERY);
+        String providerName = getArg(context, flowFile, "nx-provider", PROVIDER);
         String pageSize = getArg(context, flowFile, "nx-page-size", PAGE_SIZE);
         String currentPageIndex = getArg(context, flowFile, "nx-page-index", PAGE_INDEX);
         String maxResults = getArg(context, flowFile, "nx-max-results", MAX_RESULTS);
@@ -186,13 +186,13 @@ public class ExecuteNuxeoQuery extends AbstractNuxeoProcessor {
         // Evaluate target path
         try {
             // Invoke document query operation
-            Documents docs = getRepository(context).query(query, pageSize, currentPageIndex, maxResults, sortBy,
-                    sortOrder, queryParams, new String[0]);
+            Documents docs = getRepository(context).queryByProvider(providerName, pageSize, currentPageIndex,
+                    maxResults, sortBy, sortOrder, queryParams);
 
             // Check errors...
             if (docs.hasError()) {
                 // Reset parameters to those provided by config or input
-                session.putAttribute(flowFile, "nx-query", query);
+                session.putAttribute(flowFile, "nx-provider", providerName);
                 session.putAttribute(flowFile, "nx-page-size", pageSize);
                 session.putAttribute(flowFile, "nx-page-index", currentPageIndex);
                 session.putAttribute(flowFile, "nx-max-results", maxResults);
@@ -213,7 +213,7 @@ public class ExecuteNuxeoQuery extends AbstractNuxeoProcessor {
             if (docs.isNextPageAvailable()) {
                 FlowFile nextPage = session.create(flowFile);
                 // Get next page parameters provided by input
-                session.putAttribute(nextPage, "nx-query", query);
+                session.putAttribute(nextPage, "nx-provider", providerName);
                 session.putAttribute(nextPage, "nx-page-size", Integer.toString(docs.getPageSize()));
                 session.putAttribute(nextPage, "nx-page-index", Integer.toString(docs.getCurrentPageIndex() + 1));
                 session.putAttribute(nextPage, "nx-max-results", Integer.toString(docs.getResultsCount()));
@@ -246,7 +246,7 @@ public class ExecuteNuxeoQuery extends AbstractNuxeoProcessor {
                 session.transfer(childFlow, REL_SUCCESS);
             }
         } catch (NuxeoClientException nce) {
-            getLogger().error("Unable to query repository: " + query, nce);
+            getLogger().error("Unable to query repository with provider: " + providerName, nce);
         }
 
         // Send original
