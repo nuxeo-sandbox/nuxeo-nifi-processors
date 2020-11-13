@@ -57,7 +57,8 @@ import org.nuxeo.client.spi.NuxeoClientException;
         @ReadsAttribute(attribute = "nx-sort-by", description = "Sort by field"),
         @ReadsAttribute(attribute = "nx-sort-order", description = "Sort order to use (ASC, DESC)"),
         @ReadsAttribute(attribute = "nx-query-params", description = "Query parameters to use") })
-@WritesAttributes({ @WritesAttribute(attribute = NuxeoAttributes.VAR_DOC_ID, description = "Document ID") })
+@WritesAttributes({ @WritesAttribute(attribute = NuxeoAttributes.VAR_DOC_ID, description = "Document ID"),
+        @WritesAttribute(attribute = NuxeoAttributes.VAR_ENTITY_TYPE, description = "Document Type") })
 @TriggerWhenEmpty
 @InputRequirement(Requirement.INPUT_ALLOWED)
 public class ExecuteNuxeoQuery extends AbstractNuxeoProcessor {

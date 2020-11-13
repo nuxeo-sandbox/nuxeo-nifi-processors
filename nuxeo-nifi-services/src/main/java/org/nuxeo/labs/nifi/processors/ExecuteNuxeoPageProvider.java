@@ -48,7 +48,7 @@ import org.nuxeo.client.objects.Document;
 import org.nuxeo.client.objects.Documents;
 import org.nuxeo.client.spi.NuxeoClientException;
 
-@Tags({ "nuxeo", "execute", "query" })
+@Tags({ "nuxeo", "execute", "page", "query" })
 @CapabilityDescription("Query the Nuxeo repository for a set of related documents.")
 @ReadsAttributes({ @ReadsAttribute(attribute = "nx-provider", description = "Page provider to execute"),
         @ReadsAttribute(attribute = "nx-page-size", description = "Page size to retreive"),
@@ -57,7 +57,8 @@ import org.nuxeo.client.spi.NuxeoClientException;
         @ReadsAttribute(attribute = "nx-sort-by", description = "Sort by field"),
         @ReadsAttribute(attribute = "nx-sort-order", description = "Sort order to use (ASC, DESC)"),
         @ReadsAttribute(attribute = "nx-query-params", description = "Query parameters to use") })
-@WritesAttributes({ @WritesAttribute(attribute = NuxeoAttributes.VAR_DOC_ID, description = "Document ID") })
+@WritesAttributes({ @WritesAttribute(attribute = NuxeoAttributes.VAR_DOC_ID, description = "Document ID"),
+        @WritesAttribute(attribute = NuxeoAttributes.VAR_ENTITY_TYPE, description = "Document Type") })
 @TriggerWhenEmpty
 @InputRequirement(Requirement.INPUT_ALLOWED)
 public class ExecuteNuxeoPageProvider extends AbstractNuxeoProcessor {
