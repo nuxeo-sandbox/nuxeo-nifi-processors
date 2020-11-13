@@ -1,115 +1,130 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<!-- Licensed to the Apache Software Foundation (ASF) under one or more contributor license agreements. See the NOTICE file
-  distributed with this work for additional information regarding copyright ownership. The ASF licenses this file to You under
-  the Apache License, Version 2.0 (the "License"); you may not use this file except in compliance with the License. You may
-  obtain a copy of the License at http://www.apache.org/licenses/LICENSE-2.0 Unless required by applicable law or agreed to
-  in writing, software distributed under the License is distributed on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF
-  ANY KIND, either express or implied. See the License for the specific language governing permissions and limitations under
-  the License. -->
-<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
-  xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
-  <modelVersion>4.0.0</modelVersion>
+<!-- Licensed to the Apache Software Foundation (ASF) under one or more contributor 
+	license agreements. See the NOTICE file distributed with this work for additional 
+	information regarding copyright ownership. The ASF licenses this file to 
+	You under the Apache License, Version 2.0 (the "License"); you may not use 
+	this file except in compliance with the License. You may obtain a copy of 
+	the License at http://www.apache.org/licenses/LICENSE-2.0 Unless required 
+	by applicable law or agreed to in writing, software distributed under the 
+	License is distributed on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS 
+	OF ANY KIND, either express or implied. See the License for the specific 
+	language governing permissions and limitations under the License. -->
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+	xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+	xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+	<modelVersion>4.0.0</modelVersion>
 
-  <parent>
-    <groupId>org.apache.nifi</groupId>
-    <artifactId>nifi-nar-bundles</artifactId>
-    <version>1.10.0</version>
-  </parent>
+	<parent>
+		<groupId>org.apache.nifi</groupId>
+		<artifactId>nifi-nar-bundles</artifactId>
+		<version>1.10.0</version>
+	</parent>
 
-  <groupId>org.nuxeo.labs.nifi</groupId>
-  <artifactId>nuxeo-nifi-processors-parent</artifactId>
-  <name>Apache Nifi :: Nuxeo Processors</name>
-  <version>10.10</version>
-  <packaging>pom</packaging>
+	<groupId>org.nuxeo.labs.nifi</groupId>
+	<artifactId>nuxeo-nifi-processors-parent</artifactId>
+	<name>Apache Nifi :: Nuxeo Processors</name>
+	<version>10.10</version>
+	<packaging>pom</packaging>
 
-  <properties>
-    <nifiVersion>1.11.4</nifiVersion>
-    <nuxeoVersion>10.10</nuxeoVersion>
-    <nuxeoJavaClient>3.5.0</nuxeoJavaClient>
-  </properties>
+	<properties>
+		<nifiVersion>1.12.1</nifiVersion>
+		<nuxeoVersion>10.10</nuxeoVersion>
+		<nuxeoJavaClient>3.8.0</nuxeoJavaClient>
+	</properties>
 
-  <modules>
-    <module>nuxeo-nifi-api</module>
-    <module>nuxeo-nifi-services</module>
-    <module>nuxeo-nifi-itests</module>
-    <module>nuxeo-nifi-api-nar</module>
-    <module>nuxeo-nifi-services-nar</module>
-  </modules>
+	<modules>
+		<module>nuxeo-nifi-api</module>
+		<module>nuxeo-nifi-services</module>
+		<module>nuxeo-nifi-itests</module>
+		<module>nuxeo-nifi-api-nar</module>
+		<module>nuxeo-nifi-services-nar</module>
+	</modules>
 
-  <dependencyManagement>
-    <dependencies>
-      <dependency>
-        <groupId>org.nuxeo.client</groupId>
-        <artifactId>nuxeo-java-client</artifactId>
-        <version>${nuxeoJavaClient}</version>
-      </dependency>
-      <dependency>
-        <groupId>org.nuxeo.ecm.webengine</groupId>
-        <artifactId>nuxeo-webengine-core</artifactId>
-        <version>${nuxeoVersion}</version>
-      </dependency>
-      <dependency>
-        <groupId>org.apache.nifi</groupId>
-        <artifactId>nifi-utils</artifactId>
-        <version>${nifiVersion}</version>
-      </dependency>
-      <dependency>
-        <groupId>org.apache.nifi</groupId>
-        <artifactId>nifi-mock</artifactId>
-        <version>${nifiVersion}</version>
-        <scope>test</scope>
-      </dependency>
-    </dependencies>
-  </dependencyManagement>
+	<dependencyManagement>
+		<dependencies>
+			<dependency>
+				<groupId>org.nuxeo.client</groupId>
+				<artifactId>nuxeo-java-client</artifactId>
+				<version>${nuxeoJavaClient}</version>
+			</dependency>
+			<dependency>
+				<groupId>org.nuxeo.ecm.webengine</groupId>
+				<artifactId>nuxeo-webengine-core</artifactId>
+				<version>${nuxeoVersion}</version>
+			</dependency>
+			<dependency>
+				<groupId>org.apache.nifi</groupId>
+				<artifactId>nifi-utils</artifactId>
+				<version>${nifiVersion}</version>
+			</dependency>
+			<dependency>
+				<groupId>org.apache.nifi</groupId>
+				<artifactId>nifi-mock</artifactId>
+				<version>${nifiVersion}</version>
+				<scope>test</scope>
+			</dependency>
+		</dependencies>
+	</dependencyManagement>
 
-  <repositories>
-    <repository>
-      <id>public</id>
-      <url>http://maven.nuxeo.org/nexus/content/groups/public</url>
-      <releases>
-        <enabled>true</enabled>
-      </releases>
-      <snapshots>
-        <enabled>false</enabled>
-      </snapshots>
-    </repository>
-    <repository>
-      <id>public-snapshot</id>
-      <url>http://maven.nuxeo.org/nexus/content/groups/public-snapshot</url>
-      <releases>
-        <enabled>false</enabled>
-      </releases>
-      <snapshots>
-        <updatePolicy>daily</updatePolicy>
-        <enabled>true</enabled>
-      </snapshots>
-    </repository>
-  </repositories>
+	<repositories>
+		<repository>
+			<id>public</id>
+			<url>http://maven.nuxeo.org/nexus/content/groups/public</url>
+			<releases>
+				<enabled>true</enabled>
+			</releases>
+			<snapshots>
+				<enabled>false</enabled>
+			</snapshots>
+		</repository>
+		<repository>
+			<id>public-snapshot</id>
+			<url>http://maven.nuxeo.org/nexus/content/groups/public-snapshot</url>
+			<releases>
+				<enabled>false</enabled>
+			</releases>
+			<snapshots>
+				<updatePolicy>daily</updatePolicy>
+				<enabled>true</enabled>
+			</snapshots>
+		</repository>
+	</repositories>
 
-  <pluginRepositories>
-    <pluginRepository>
-      <id>public</id>
-      <url>http://maven.nuxeo.org/nexus/content/groups/public</url>
-      <name>Nuxeo virtual release repository</name>
-      <releases>
-        <enabled>true</enabled>
-      </releases>
-      <snapshots>
-        <enabled>false</enabled>
-      </snapshots>
-    </pluginRepository>
-    <pluginRepository>
-      <id>public-snapshot</id>
-      <url>http://maven.nuxeo.org/nexus/content/groups/public-snapshot</url>
-      <name>Nuxeo virtual snapshot repository</name>
-      <releases>
-        <enabled>false</enabled>
-      </releases>
-      <snapshots>
-        <updatePolicy>daily</updatePolicy>
-        <enabled>true</enabled>
-      </snapshots>
-    </pluginRepository>
-  </pluginRepositories>
+	<pluginRepositories>
+		<pluginRepository>
+			<id>public</id>
+			<url>http://maven.nuxeo.org/nexus/content/groups/public</url>
+			<name>Nuxeo virtual release repository</name>
+			<releases>
+				<enabled>true</enabled>
+			</releases>
+			<snapshots>
+				<enabled>false</enabled>
+			</snapshots>
+		</pluginRepository>
+		<pluginRepository>
+			<id>public-snapshot</id>
+			<url>http://maven.nuxeo.org/nexus/content/groups/public-snapshot</url>
+			<name>Nuxeo virtual snapshot repository</name>
+			<releases>
+				<enabled>false</enabled>
+			</releases>
+			<snapshots>
+				<updatePolicy>daily</updatePolicy>
+				<enabled>true</enabled>
+			</snapshots>
+		</pluginRepository>
+	</pluginRepositories>
 
+	<build>
+		<plugins>
+			<plugin>
+				<groupId>org.apache.maven.plugins</groupId>
+				<artifactId>maven-compiler-plugin</artifactId>
+				<configuration>
+					<release>11</release>
+				</configuration>
+			</plugin>
+		</plugins>
+	</build>
 </project>

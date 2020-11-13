@@ -34,14 +34,14 @@ public class ITGetNuxeoChildrenTest extends BaseTest {
         testRunner = TestRunners.newTestRunner(GetNuxeoChildren.class);
         addController(testRunner);
 
-        testRunner.setProperty(GetNuxeoChildren.DOC_PATH, "${nxpath}");
+        testRunner.setProperty(GetNuxeoChildren.DOC_PATH, "${nx-path}");
         testRunner.setProperty(GetNuxeoChildren.NUXEO_CLIENT_SERVICE, "localhost");
     }
 
     @Test
     public void testProcessor() {
         Map<String, String> attributes = new HashMap<>();
-        attributes.put("nxpath", "/");
+        attributes.put("nx-path", "/");
 
         testRunner.enqueue("", attributes);
         testRunner.run(1);

@@ -18,6 +18,7 @@ package org.nuxeo.labs.nifi.processors;
 
 import java.util.HashMap;
 import java.util.Map;
+import static org.junit.Assert.assertNotNull;
 
 import org.apache.nifi.util.MockFlowFile;
 import org.apache.nifi.util.TestRunner;
@@ -36,13 +37,13 @@ public class ITNuxeoDocumentOperationTest extends BaseTest {
         testRunner = TestRunners.newTestRunner(NuxeoDocumentOperation.class);
         addController(testRunner);
 
-        testRunner.setProperty(NuxeoDocumentOperation.DOC_PATH, "${nxpath}");
+        testRunner.setProperty(NuxeoDocumentOperation.DOC_PATH, "${nx-path}");
         testRunner.setProperty(NuxeoDocumentOperation.OPERATION_ID, "Document.AddToFavorites");
         testRunner.setProperty(NuxeoDocumentOperation.NUXEO_CLIENT_SERVICE, "localhost");
     }
 
     @Test
-    public void testProcessor() {
+    public void testProcessor() throws Exception {
         Map<String, String> attributes = new HashMap<>();
         attributes.put("nx-op", "Document.AddToFavorites");
         attributes.put("nx-path", FOLDER_2_FILE);

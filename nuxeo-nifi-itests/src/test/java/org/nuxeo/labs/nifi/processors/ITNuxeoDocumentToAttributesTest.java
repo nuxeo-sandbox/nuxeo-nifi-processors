@@ -37,14 +37,14 @@ public class ITNuxeoDocumentToAttributesTest extends BaseTest {
         testRunner = TestRunners.newTestRunner(NuxeoDocumentToAttributes.class);
         addController(testRunner);
 
-        testRunner.setProperty(NuxeoDocumentToAttributes.DOC_PATH, "${nxpath}");
+        testRunner.setProperty(NuxeoDocumentToAttributes.DOC_PATH, "${nx-path}");
         testRunner.setProperty(NuxeoDocumentToAttributes.NUXEO_CLIENT_SERVICE, "localhost");
     }
 
     @Test
     public void testProcessor() {
         Map<String, String> attributes = new HashMap<>();
-        attributes.put("nxpath", FOLDER_2_FILE);
+        attributes.put("nx-path", FOLDER_2_FILE);
 
         testRunner.enqueue("", attributes);
         testRunner.run(1);
@@ -70,7 +70,7 @@ public class ITNuxeoDocumentToAttributesTest extends BaseTest {
     public void testComplexProperty() {
         testRunner.setProperty("fileData", "file:content/data");
         Map<String, String> attributes = new HashMap<>();
-        attributes.put("nxpath", FOLDER_2_FILE);
+        attributes.put("nx-path", FOLDER_2_FILE);
 
         testRunner.enqueue("", attributes);
         testRunner.run(1);

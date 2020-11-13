@@ -38,7 +38,7 @@ public class ITUpdateNuxeoDocumentTest extends BaseTest {
         testRunner = TestRunners.newTestRunner(UpdateNuxeoDocument.class);
         addController(testRunner);
 
-        testRunner.setProperty(UpdateNuxeoDocument.DOC_PATH, "${nxpath}");
+        testRunner.setProperty(UpdateNuxeoDocument.DOC_PATH, "${nx-path}");
         testRunner.setProperty(UpdateNuxeoDocument.NUXEO_CLIENT_SERVICE, "localhost");
         testRunner.setProperty("dc:nature", "memo");
     }
@@ -46,7 +46,7 @@ public class ITUpdateNuxeoDocumentTest extends BaseTest {
     @Test
     public void testProcessor() {
         Map<String, String> attributes = new HashMap<>();
-        attributes.put("nxpath", FOLDER_2_FILE);
+        attributes.put("nx-path", FOLDER_2_FILE);
 
         testRunner.enqueue("", attributes);
         testRunner.run(1);

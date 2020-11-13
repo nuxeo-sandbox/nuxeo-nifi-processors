@@ -33,7 +33,7 @@ public class ITStartNuxeoWorkflowTest extends BaseTest {
         testRunner = TestRunners.newTestRunner(StartNuxeoWorkflow.class);
         addController(testRunner);
 
-        testRunner.setProperty(StartNuxeoWorkflow.DOC_PATH, "${nxpath}");
+        testRunner.setProperty(StartNuxeoWorkflow.DOC_PATH, "${nx-path}");
         testRunner.setProperty(StartNuxeoWorkflow.WORKFLOW, "SerialDocumentReview");
         testRunner.setProperty(StartNuxeoWorkflow.NUXEO_CLIENT_SERVICE, "localhost");
     }
@@ -41,7 +41,7 @@ public class ITStartNuxeoWorkflowTest extends BaseTest {
     @Test
     public void testProcessor() {
         Map<String, String> attributes = new HashMap<>();
-        attributes.put("nxpath", "/folder_1/note_0");
+        attributes.put("nx-path", "/folder_1/note_0");
 
         testRunner.enqueue("", attributes);
         testRunner.run(1);

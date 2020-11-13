@@ -17,7 +17,7 @@ public interface NuxeoAttributes {
     String VAR_ENTITY_TYPE = "nx-entity";
 
     String VAR_FILENAME = "filename";
-
+    
     String VAR_INDEX = "nx-index";
 
     String VAR_NAME = "nx-name";

@@ -39,7 +39,7 @@ public class ITUpdateInlineNuxeoDocumentTest extends BaseTest {
         testRunner = TestRunners.newTestRunner(UpdateNuxeoDocument.class);
         addController(testRunner);
 
-        testRunner.setProperty(UpdateNuxeoDocument.DOC_PATH, "${nxpath}");
+        testRunner.setProperty(UpdateNuxeoDocument.DOC_PATH, "${nx-path}");
         testRunner.setProperty(UpdateNuxeoDocument.NUXEO_CLIENT_SERVICE, "localhost");
         testRunner.setProperty("dc:nature", "report");
     }
@@ -52,7 +52,7 @@ public class ITUpdateInlineNuxeoDocumentTest extends BaseTest {
         String inputJson = client.getConverterFactory().writeJSON(doc);
 
         Map<String, String> attributes = new HashMap<>();
-        attributes.put("nxpath", FOLDER_2_FILE);
+        attributes.put("nx-path", FOLDER_2_FILE);
 
         testRunner.enqueue(inputJson, attributes);
         testRunner.run(1);

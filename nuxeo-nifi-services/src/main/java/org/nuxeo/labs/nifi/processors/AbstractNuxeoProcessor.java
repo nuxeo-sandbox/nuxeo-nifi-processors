@@ -212,12 +212,28 @@ public abstract class AbstractNuxeoProcessor extends AbstractProcessor implement
         if (desc != null) {
             PropertyValue pdv = ctx.getProperty(desc);
             if (pdv.isSet()) {
-                PropertyValue val = desc.isExpressionLanguageSupported() ? pdv.evaluateAttributeExpressions(ff) : pdv;
-                return val.getValue();
+                if (desc.isExpressionLanguageSupported()) {
+                    if (ff == null) {
+                        getLogger().error("Attribute expression requires flowfile for descriptor: " + desc);
+                    }
+                    pdv = pdv.evaluateAttributeExpressions(ff);
+                }
+                return pdv.getValue();
             }
         }
-        if (key != null && ff != null && ff.getAttribute(key) != null) {
+        if (key != null && ff != null) {
             return ff.getAttribute(key);
+        }
+        return null;
+    }
+
+    protected PropertyValue getValue(ProcessContext ctx, FlowFile ff, PropertyDescriptor desc) {
+        if (desc != null) {
+            PropertyValue pdv = ctx.getProperty(desc);
+            if (pdv.isSet()) {
+                PropertyValue val = desc.isExpressionLanguageSupported() ? pdv.evaluateAttributeExpressions(ff) : pdv;
+                return val;
+            }
         }
         return null;
     }
