@@ -95,7 +95,7 @@ public class CancelNuxeoWorkflow extends AbstractNuxeoProcessor {
 
         try {
             // Invoke document operation
-            Repository rep = getRepository(context);
+            Repository rep = getRepository(context, flowFile);
             List<Workflow> wfs = getDocument(context, flowFile).fetchWorkflowInstances()
                                                                .streamEntries()
                                                                .filter(w -> workflowName.contentEquals(w.getName()))

@@ -112,7 +112,7 @@ public class GetNuxeoBlob extends AbstractNuxeoProcessor {
         FlowFile blobFile = session.create(flowFile);
         try {
             // Invoke document operation
-            Repository rep = getRepository(context);
+            Repository rep = getRepository(context, flowFile);
             StreamBlob blob = docId != null ? rep.streamBlobById(docId, xpath) : rep.streamBlobByPath(path, xpath);
             session.putAttribute(blobFile, VAR_XPATH, xpath);
             session.putAttribute(blobFile, VAR_FILENAME, blob.getFilename());

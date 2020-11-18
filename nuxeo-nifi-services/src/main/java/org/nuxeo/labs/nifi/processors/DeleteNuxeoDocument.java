@@ -100,7 +100,7 @@ public class DeleteNuxeoDocument extends AbstractNuxeoProcessor {
             if (doc == null) {
                 return;
             }
-            Repository rep = getRepository(context);
+            Repository rep = getRepository(context, flowFile);
             session.putAttribute(flowFile, VAR_DOC_ID, doc.getId());
 
             if (useTrash) {

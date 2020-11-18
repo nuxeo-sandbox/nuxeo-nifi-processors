@@ -160,12 +160,12 @@ public abstract class AbstractNuxeoProcessor extends AbstractProcessor implement
      * @param context
      * @return
      */
-    protected Repository getRepository(final ProcessContext context) {
+    protected Repository getRepository(final ProcessContext context, final FlowFile ff) {
         String repo = this.nuxeoClientService.getDefaultRepository();
 
         PropertyValue pval = context.getProperty(TARGET_REPO);
         if (pval.isSet()) {
-            repo = pval.getValue();
+            repo = pval.evaluateAttributeExpressions(ff).getValue();
         }
 
         String schemas = "*";
@@ -254,7 +254,7 @@ public abstract class AbstractNuxeoProcessor extends AbstractProcessor implement
             return null;
         }
 
-        Repository rep = getRepository(context);
+        Repository rep = getRepository(context, flowFile);
         Document doc = docId != null ? rep.fetchDocumentById(docId) : rep.fetchDocumentByPath(path);
         return doc;
     }

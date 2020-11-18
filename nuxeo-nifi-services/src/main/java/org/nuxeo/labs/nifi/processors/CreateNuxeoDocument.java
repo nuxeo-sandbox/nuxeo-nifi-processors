@@ -170,7 +170,7 @@ public class CreateNuxeoDocument extends AbstractNuxeoDynamicProcessor {
             }
 
             // Create document
-            doc = getRepository(context).createDocumentByPath(path, doc);
+            doc = getRepository(context, flowFile).createDocumentByPath(path, doc);
 
             // Convert and write to JSON
             String json = this.nuxeoClient.getConverterFactory().writeJSON(doc);

@@ -82,7 +82,7 @@ public class GetNuxeoDocumentAudit extends AbstractNuxeoProcessor {
 
         try {
             // Invoke document operation
-            Repository rep = getRepository(context);
+            Repository rep = getRepository(context, flowFile);
             Document doc = getDocument(context, flowFile);
             if (doc == null) {
                 return;

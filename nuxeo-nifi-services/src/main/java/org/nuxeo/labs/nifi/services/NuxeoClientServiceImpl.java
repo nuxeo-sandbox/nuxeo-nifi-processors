@@ -131,15 +131,15 @@ public class NuxeoClientServiceImpl extends AbstractControllerService implements
     @OnEnabled
     public void onConfigured(final ConfigurationContext context) throws InitializationException {
         // Destination server
-        serverUrl = context.getProperty(SERVER_URL).getValue();
+        serverUrl = context.getProperty(SERVER_URL).evaluateAttributeExpressions().getValue();
 
         // Default repo
-        defaultRepo = context.getProperty(DEFAULT_REPO).getValue();
+        defaultRepo = context.getProperty(DEFAULT_REPO).evaluateAttributeExpressions().getValue();
 
         // Credentials
         authType = context.getProperty(AUTH_TYPE).getValue();
-        username = context.getProperty(USERNAME).getValue();
-        credentials = context.getProperty(CREDENTIALS).getValue();
+        username = context.getProperty(USERNAME).evaluateAttributeExpressions().getValue();
+        credentials = context.getProperty(CREDENTIALS).evaluateAttributeExpressions().getValue();
 
         if (!serverUrl.endsWith("/nuxeo") && !serverUrl.endsWith("/nuxeo/")) {
             getLogger().warn("Server URL does not end with '/nuxeo': " + serverUrl);
@@ -185,12 +185,13 @@ public class NuxeoClientServiceImpl extends AbstractControllerService implements
     }
 
     public NuxeoClient getClient() {
-        if (this.client != null) {
-            return this.client;
+        if (!isEnabled()) {
+            throw new IllegalStateException("Nuxeo Client Service is disabled");
         }
-        synchronized (this) {
-            return this.client = buildClient();
+        if (this.client == null) {
+            throw new IllegalStateException("Nuxeo Client Service configuration is invalid");
         }
+        return this.client;
     }
 
     public String getDefaultRepository() {

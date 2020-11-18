@@ -99,7 +99,7 @@ public class StartNuxeoWorkflow extends AbstractNuxeoProcessor {
 
         try {
             // Invoke document operation
-            Repository rep = getRepository(context);
+            Repository rep = getRepository(context, flowFile);
             Workflow model = rep.fetchWorkflowModel(workflowName);
             Workflow instance = docId != null ? rep.startWorkflowInstanceWithDocId(docId, model)
                     : rep.startWorkflowInstanceWithDocPath(path, model);

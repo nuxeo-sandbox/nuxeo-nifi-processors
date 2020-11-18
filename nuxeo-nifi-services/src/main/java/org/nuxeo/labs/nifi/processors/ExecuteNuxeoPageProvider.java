@@ -187,7 +187,7 @@ public class ExecuteNuxeoPageProvider extends AbstractNuxeoProcessor {
         // Evaluate target path
         try {
             // Invoke document query operation
-            Documents docs = getRepository(context).queryByProvider(providerName, pageSize, currentPageIndex,
+            Documents docs = getRepository(context, flowFile).queryByProvider(providerName, pageSize, currentPageIndex,
                     maxResults, sortBy, sortOrder, queryParams);
 
             // Check errors...

@@ -95,7 +95,7 @@ public class GetNuxeoChildren extends AbstractNuxeoProcessor {
 
         try {
             // Invoke document operation
-            Repository rep = getRepository(context);
+            Repository rep = getRepository(context, flowFile);
             Documents docs = docId != null ? rep.fetchChildrenById(docId) : rep.fetchChildrenByPath(path);
 
             // Write documents to flowfile
