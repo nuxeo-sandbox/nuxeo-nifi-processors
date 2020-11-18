@@ -23,6 +23,7 @@ import java.util.Collections;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
+import java.util.stream.Collectors;
 
 import org.apache.commons.io.IOUtils;
 import org.apache.nifi.annotation.behavior.InputRequirement;
@@ -35,35 +36,46 @@ import org.apache.nifi.annotation.documentation.CapabilityDescription;
 import org.apache.nifi.annotation.documentation.SeeAlso;
 import org.apache.nifi.annotation.documentation.Tags;
 import org.apache.nifi.components.PropertyDescriptor;
+import org.apache.nifi.components.Validator;
+import org.apache.nifi.expression.ExpressionLanguageScope;
 import org.apache.nifi.flowfile.FlowFile;
 import org.apache.nifi.processor.ProcessContext;
 import org.apache.nifi.processor.ProcessSession;
 import org.apache.nifi.processor.ProcessorInitializationContext;
 import org.apache.nifi.processor.Relationship;
 import org.apache.nifi.processor.exception.ProcessException;
-import org.nuxeo.client.objects.Document;
+import org.nuxeo.client.objects.Repository;
+import org.nuxeo.client.objects.workflow.Workflow;
 import org.nuxeo.client.spi.NuxeoClientException;
 
-@Tags({ "nuxeo", "get", "document" })
-@CapabilityDescription("Retrieve a document from Nuxeo as JSON.")
-@SeeAlso({ UpdateNuxeoDocument.class, GetNuxeoBlob.class, GetNuxeoDocumentACP.class, GetNuxeoDocumentAudit.class })
-@ReadsAttributes({
+@Tags({ "nuxeo", "cancel", "workflow" })
+@CapabilityDescription("Cancel a workflow instance for a document within Nuxeo.")
+@SeeAlso({ GetNuxeoWorkflows.class })
+@ReadsAttributes({ @ReadsAttribute(attribute = "nx-workflow", description = "Workflow to cancel."),
         @ReadsAttribute(attribute = NuxeoAttributes.VAR_DOC_ID, description = "Document ID to use if the path isn't specified"),
         @ReadsAttribute(attribute = NuxeoAttributes.VAR_PATH, description = "Path to use, nx-docid overrides") })
-@WritesAttributes({
-        @WritesAttribute(attribute = NuxeoAttributes.VAR_DOC_ID, description = "Nuxeo document ID"),
-        @WritesAttribute(attribute = NuxeoAttributes.VAR_ENTITY_TYPE, description = "Entity type of content retrieved"),
+@WritesAttributes({ @WritesAttribute(attribute = "nx-workflow-id", description = "ID of document workflow instance."),
         @WritesAttribute(attribute = NuxeoAttributes.VAR_ERROR, description = "Error set if problem occurs") })
 @InputRequirement(Requirement.INPUT_ALLOWED)
-public class GetNuxeoDocument extends AbstractNuxeoProcessor {
+public class CancelNuxeoWorkflow extends AbstractNuxeoProcessor {
+
+    public static final PropertyDescriptor WORKFLOW = new PropertyDescriptor.Builder().name("WORKFLOW")
+                                                                                      .displayName("Workflow")
+                                                                                      .description(
+                                                                                              "Workflow name to cancel.")
+                                                                                      .expressionLanguageSupported(
+                                                                                              ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
+                                                                                      .required(true)
+                                                                                      .addValidator(Validator.VALID)
+                                                                                      .build();
 
     @Override
     protected void init(final ProcessorInitializationContext context) {
         final List<PropertyDescriptor> descriptors = new ArrayList<PropertyDescriptor>();
         descriptors.add(NUXEO_CLIENT_SERVICE);
         descriptors.add(TARGET_REPO);
+        descriptors.add(WORKFLOW);
         descriptors.add(DOC_PATH);
-        descriptors.add(FILTER_SCHEMAS);
         this.descriptors = Collections.unmodifiableList(descriptors);
 
         final Set<Relationship> relationships = new HashSet<Relationship>();
@@ -79,25 +91,34 @@ public class GetNuxeoDocument extends AbstractNuxeoProcessor {
             return;
         }
 
+        String workflowName = getArg(context, flowFile, "nx-workflow", WORKFLOW);
+
         try {
             // Invoke document operation
-            Document doc = getDocument(context, flowFile);
-            if (doc == null) {
-                return;
-            }
-            session.putAttribute(flowFile, VAR_ENTITY_TYPE, doc.getEntityType());
-            session.putAttribute(flowFile, VAR_DOC_ID, doc.getId());
+            Repository rep = getRepository(context);
+            List<Workflow> wfs = getDocument(context, flowFile).fetchWorkflowInstances()
+                                                               .streamEntries()
+                                                               .filter(w -> workflowName.contentEquals(w.getName()))
+                                                               .collect(Collectors.toList());
 
-            // Convert and write to JSON
-            String json = this.nuxeoClient.getConverterFactory().writeJSON(doc);
-            try (OutputStream out = session.write(flowFile)) {
-                IOUtils.write(json, out, UTF8);
-            } catch (IOException e) {
-                session.putAttribute(flowFile, VAR_ERROR, e.getMessage());
-                session.transfer(flowFile, REL_FAILURE);
-                return;
+            // Write documents to flowfile
+            for (Workflow wf : wfs) {
+                rep.cancelWorkflowInstance(wf.getId());
+                FlowFile childFlow = session.create(flowFile);
+                session.putAttribute(childFlow, VAR_ENTITY_TYPE, wf.getEntityType());
+                session.putAttribute(childFlow, "nx-workflow-id", wf.getId());
+
+                // Convert and write to JSON
+                String json = this.nuxeoClient.getConverterFactory().writeJSON(wf);
+                try (OutputStream out = session.write(childFlow)) {
+                    IOUtils.write(json, out, UTF8);
+                } catch (IOException e) {
+                    session.putAttribute(flowFile, VAR_ERROR, e.getMessage());
+                    session.transfer(flowFile, REL_FAILURE);
+                    continue;
+                }
+                session.transfer(childFlow, REL_SUCCESS);
             }
-            session.transfer(flowFile, REL_SUCCESS);
         } catch (NuxeoClientException nce) {
             session.putAttribute(flowFile, VAR_ERROR, nce.getMessage());
             session.transfer(flowFile, REL_FAILURE);

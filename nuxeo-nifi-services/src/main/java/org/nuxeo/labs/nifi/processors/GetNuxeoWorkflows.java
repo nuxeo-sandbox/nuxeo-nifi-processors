@@ -84,6 +84,8 @@ public class GetNuxeoWorkflows extends AbstractNuxeoProcessor {
             // Write documents to flowfile
             for (Workflow wf : wfs) {
                 FlowFile childFlow = session.create(flowFile);
+                session.putAttribute(childFlow, VAR_ENTITY_TYPE, wf.getEntityType());
+                session.putAttribute(childFlow, "nx-workflow-id", wf.getId());
 
                 // Convert and write to JSON
                 String json = this.nuxeoClient.getConverterFactory().writeJSON(wf);
@@ -92,8 +94,7 @@ public class GetNuxeoWorkflows extends AbstractNuxeoProcessor {
                 } catch (IOException e) {
                     continue;
                 }
-                session.putAttribute(childFlow, VAR_ENTITY_TYPE, wf.getEntityType());
-                session.putAttribute(childFlow, "nx-workflow-id", wf.getId());
+
                 session.transfer(childFlow, REL_SUCCESS);
             }
         } catch (NuxeoClientException nce) {

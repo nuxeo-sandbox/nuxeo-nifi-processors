@@ -105,6 +105,7 @@ public class DeleteNuxeoDocument extends AbstractNuxeoProcessor {
 
             if (useTrash) {
                 doc = doc.trash();
+                session.putAttribute(flowFile, "nx-trashed", "true");
 
                 // Convert and write to JSON
                 String json = this.nuxeoClient.getConverterFactory().writeJSON(doc);
@@ -115,7 +116,6 @@ public class DeleteNuxeoDocument extends AbstractNuxeoProcessor {
                     session.transfer(flowFile, REL_FAILURE);
                     return;
                 }
-                session.putAttribute(flowFile, "nx-trashed", "true");
             } else {
                 // Remove document
                 rep.deleteDocument(doc);

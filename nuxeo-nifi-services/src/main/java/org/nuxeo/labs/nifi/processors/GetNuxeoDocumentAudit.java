@@ -17,7 +17,6 @@
 package org.nuxeo.labs.nifi.processors;
 
 import java.io.IOException;
-import java.io.InputStream;
 import java.io.OutputStream;
 import java.util.ArrayList;
 import java.util.Collections;
@@ -26,7 +25,6 @@ import java.util.List;
 import java.util.Set;
 
 import org.apache.commons.io.IOUtils;
-import org.apache.commons.lang3.StringUtils;
 import org.apache.nifi.annotation.behavior.InputRequirement;
 import org.apache.nifi.annotation.behavior.InputRequirement.Requirement;
 import org.apache.nifi.annotation.behavior.ReadsAttribute;
@@ -37,44 +35,28 @@ import org.apache.nifi.annotation.documentation.CapabilityDescription;
 import org.apache.nifi.annotation.documentation.SeeAlso;
 import org.apache.nifi.annotation.documentation.Tags;
 import org.apache.nifi.components.PropertyDescriptor;
-import org.apache.nifi.expression.ExpressionLanguageScope;
 import org.apache.nifi.flowfile.FlowFile;
 import org.apache.nifi.processor.ProcessContext;
 import org.apache.nifi.processor.ProcessSession;
 import org.apache.nifi.processor.ProcessorInitializationContext;
 import org.apache.nifi.processor.Relationship;
 import org.apache.nifi.processor.exception.ProcessException;
-import org.apache.nifi.processor.util.StandardValidators;
 import org.nuxeo.client.objects.Document;
 import org.nuxeo.client.objects.Repository;
-import org.nuxeo.client.objects.blob.StreamBlob;
+import org.nuxeo.client.objects.audit.Audit;
 import org.nuxeo.client.spi.NuxeoClientException;
 
-@Tags({ "nuxeo", "get", "blob" })
-@CapabilityDescription("Retrieve the blob data from Nuxeo for a given document.")
-@SeeAlso({ NuxeoBlobOperation.class, UploadNuxeoBlob.class })
+@Tags({ "nuxeo", "get", "document", "audit" })
+@CapabilityDescription("Retrieve document audit history from Nuxeo as JSON.")
+@SeeAlso({ GetNuxeoDocument.class, GetNuxeoDocumentACP.class })
 @ReadsAttributes({
         @ReadsAttribute(attribute = NuxeoAttributes.VAR_DOC_ID, description = "Document ID to use if the path isn't specified"),
-        @ReadsAttribute(attribute = NuxeoAttributes.VAR_PATH, description = "Path to use, nx-docid overrides"),
-        @ReadsAttribute(attribute = NuxeoAttributes.VAR_XPATH, description = "X-Path to use, defaults to file:content") })
-@WritesAttributes({ @WritesAttribute(attribute = NuxeoAttributes.VAR_DOC_ID, description = "Added if not present"),
-        @WritesAttribute(attribute = NuxeoAttributes.VAR_FILENAME, description = "Filename of the blob"),
+        @ReadsAttribute(attribute = NuxeoAttributes.VAR_PATH, description = "Path to use, nx-docid overrides") })
+@WritesAttributes({ @WritesAttribute(attribute = NuxeoAttributes.VAR_DOC_ID, description = "Nuxeo document ID"),
+        @WritesAttribute(attribute = NuxeoAttributes.VAR_ENTITY_TYPE, description = "Entity type of content retrieved"),
         @WritesAttribute(attribute = NuxeoAttributes.VAR_ERROR, description = "Error set if problem occurs") })
 @InputRequirement(Requirement.INPUT_ALLOWED)
-public class GetNuxeoBlob extends AbstractNuxeoProcessor {
-
-    public static final PropertyDescriptor XPATH = new PropertyDescriptor.Builder().name("XPATH")
-                                                                                   .displayName("Property X-Path")
-                                                                                   .description(
-                                                                                           "Document x-path property to retrieve. {nx-xpath}")
-                                                                                   .expressionLanguageSupported(
-                                                                                           ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
-                                                                                   .defaultValue(
-                                                                                           Document.DEFAULT_FILE_CONTENT)
-                                                                                   .required(false)
-                                                                                   .addValidator(
-                                                                                           StandardValidators.NON_BLANK_VALIDATOR)
-                                                                                   .build();
+public class GetNuxeoDocumentAudit extends AbstractNuxeoProcessor {
 
     @Override
     protected void init(final ProcessorInitializationContext context) {
@@ -82,12 +64,11 @@ public class GetNuxeoBlob extends AbstractNuxeoProcessor {
         descriptors.add(NUXEO_CLIENT_SERVICE);
         descriptors.add(TARGET_REPO);
         descriptors.add(DOC_PATH);
-        descriptors.add(XPATH);
+        descriptors.add(FILTER_SCHEMAS);
         this.descriptors = Collections.unmodifiableList(descriptors);
 
         final Set<Relationship> relationships = new HashSet<Relationship>();
         relationships.add(REL_SUCCESS);
-        relationships.add(REL_ORIGINAL);
         relationships.add(REL_FAILURE);
         this.relationships = Collections.unmodifiableSet(relationships);
     }
@@ -99,42 +80,33 @@ public class GetNuxeoBlob extends AbstractNuxeoProcessor {
             return;
         }
 
-        // Get target blob
-        String xpath = getArg(context, flowFile, VAR_XPATH, XPATH);
-        String docId = getArg(context, flowFile, VAR_DOC_ID, null);
-        String path = getArg(context, flowFile, VAR_PATH, DOC_PATH);
-
-        if (StringUtils.isBlank(docId) && StringUtils.isBlank(path)) {
-            return;
-        }
-
-        // Create success path
-        FlowFile blobFile = session.create(flowFile);
         try {
             // Invoke document operation
             Repository rep = getRepository(context);
-            StreamBlob blob = docId != null ? rep.streamBlobById(docId, xpath) : rep.streamBlobByPath(path, xpath);
-            session.putAttribute(blobFile, VAR_XPATH, xpath);
-            session.putAttribute(blobFile, VAR_FILENAME, blob.getFilename());
-            session.putAttribute(blobFile, "mime.type", blob.getMimeType());
+            Document doc = getDocument(context, flowFile);
+            if (doc == null) {
+                return;
+            }
 
-            // Write to flowfile
-            try (InputStream in = blob.getStream(); OutputStream out = session.write(blobFile)) {
-                IOUtils.copy(in, out);
+            // Fetch Audit
+            Audit audit = rep.fetchAuditById(doc.getId());
+            session.putAttribute(flowFile, VAR_ENTITY_TYPE, audit.getEntityType());
+            session.putAttribute(flowFile, VAR_DOC_ID, doc.getId());
+
+            // Convert and write to JSON
+            String json = this.nuxeoClient.getConverterFactory().writeJSON(audit);
+            try (OutputStream out = session.write(flowFile)) {
+                IOUtils.write(json, out, UTF8);
             } catch (IOException e) {
                 session.putAttribute(flowFile, VAR_ERROR, e.getMessage());
                 session.transfer(flowFile, REL_FAILURE);
                 return;
             }
 
-            session.transfer(blobFile, REL_SUCCESS);
+            session.transfer(flowFile, REL_SUCCESS);
         } catch (NuxeoClientException nce) {
-            session.remove(blobFile);
-            getLogger().error("Unable to retrieve blob", nce);
-            session.putAttribute(flowFile, VAR_ERROR, String.valueOf(nce));
+            session.putAttribute(flowFile, VAR_ERROR, nce.getMessage());
             session.transfer(flowFile, REL_FAILURE);
-        } finally {
-            session.transfer(flowFile, REL_ORIGINAL);
         }
     }
 }

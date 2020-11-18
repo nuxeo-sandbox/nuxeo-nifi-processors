@@ -13,6 +13,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 org.nuxeo.labs.nifi.processors.AttachNuxeoBlob
+org.nuxeo.labs.nifi.processors.CancelNuxeoWorkflow
 org.nuxeo.labs.nifi.processors.CreateNuxeoDocument
 org.nuxeo.labs.nifi.processors.DeleteNuxeoDocument
 org.nuxeo.labs.nifi.processors.ExecuteNuxeoPageProvider
@@ -20,6 +21,8 @@ org.nuxeo.labs.nifi.processors.ExecuteNuxeoQuery
 org.nuxeo.labs.nifi.processors.GetNuxeoBlob
 org.nuxeo.labs.nifi.processors.GetNuxeoChildren
 org.nuxeo.labs.nifi.processors.GetNuxeoDocument
+org.nuxeo.labs.nifi.processors.GetNuxeoDocumentACP
+org.nuxeo.labs.nifi.processors.GetNuxeoDocumentAudit
 org.nuxeo.labs.nifi.processors.GetNuxeoWorkflows
 org.nuxeo.labs.nifi.processors.NuxeoBlobOperation
 org.nuxeo.labs.nifi.processors.NuxeoDocumentOperation

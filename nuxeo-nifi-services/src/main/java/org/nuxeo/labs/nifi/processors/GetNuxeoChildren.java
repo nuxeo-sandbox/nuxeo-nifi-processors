@@ -101,16 +101,19 @@ public class GetNuxeoChildren extends AbstractNuxeoProcessor {
             // Write documents to flowfile
             for (Document doc : docs.getDocuments()) {
                 FlowFile childFlow = flowFile == null ? session.create() : session.create(flowFile);
+                session.putAttribute(childFlow, VAR_ENTITY_TYPE, doc.getEntityType());
+                session.putAttribute(childFlow, VAR_DOC_ID, doc.getId());
 
                 // Convert and write to JSON
                 String json = this.nuxeoClient.getConverterFactory().writeJSON(doc);
                 try (OutputStream out = session.write(childFlow)) {
                     IOUtils.write(json, out, UTF8);
                 } catch (IOException e) {
+                    session.putAttribute(flowFile, VAR_ERROR, e.getMessage());
+                    session.transfer(flowFile, REL_FAILURE);
                     continue;
                 }
-                session.putAttribute(childFlow, VAR_ENTITY_TYPE, doc.getEntityType());
-                session.putAttribute(childFlow, VAR_DOC_ID, doc.getId());
+
                 session.transfer(childFlow, REL_SUCCESS);
             }
         } catch (NuxeoClientException nce) {
@@ -119,7 +122,6 @@ public class GetNuxeoChildren extends AbstractNuxeoProcessor {
             }
             session.putAttribute(flowFile, VAR_ERROR, nce.getMessage());
             session.transfer(flowFile, REL_FAILURE);
-            return;
         }
 
         session.transfer(flowFile, REL_ORIGINAL);
