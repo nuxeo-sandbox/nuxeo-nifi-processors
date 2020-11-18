@@ -56,7 +56,7 @@ import org.nuxeo.client.spi.NuxeoClientException;
         @ReadsAttribute(attribute = NuxeoAttributes.VAR_PATH, description = "Path to use, nx-docid overrides") })
 @WritesAttributes({ @WritesAttribute(attribute = "nx-workflow-id", description = "ID of document workflow instance."),
         @WritesAttribute(attribute = NuxeoAttributes.VAR_ERROR, description = "Error set if problem occurs") })
-@InputRequirement(Requirement.INPUT_ALLOWED)
+@InputRequirement(Requirement.INPUT_REQUIRED)
 public class CancelNuxeoWorkflow extends AbstractNuxeoProcessor {
 
     public static final PropertyDescriptor WORKFLOW = new PropertyDescriptor.Builder().name("WORKFLOW")

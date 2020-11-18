@@ -58,7 +58,7 @@ import org.nuxeo.client.spi.NuxeoClientException;
         @ReadsAttribute(attribute = NuxeoAttributes.VAR_TITLE, description = "Document title") })
 @WritesAttributes({ @WritesAttribute(attribute = NuxeoAttributes.VAR_ENTITY_TYPE, description = "Document entity type"),
         @WritesAttribute(attribute = NuxeoAttributes.VAR_DOC_ID, description = "Document ID") })
-@InputRequirement(Requirement.INPUT_ALLOWED)
+@InputRequirement(Requirement.INPUT_REQUIRED)
 public class CreateNuxeoDocument extends AbstractNuxeoDynamicProcessor {
 
     public static final PropertyDescriptor DOC_NAME = new PropertyDescriptor.Builder().name("DOC_NAME")

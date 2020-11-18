@@ -60,7 +60,7 @@ import org.nuxeo.client.spi.NuxeoClientException;
 @WritesAttributes({ @WritesAttribute(attribute = NuxeoAttributes.VAR_DOC_ID, description = "Added if not present"),
         @WritesAttribute(attribute = NuxeoAttributes.VAR_FILENAME, description = "Filename of the blob"),
         @WritesAttribute(attribute = NuxeoAttributes.VAR_ERROR, description = "Error set if problem occurs") })
-@InputRequirement(Requirement.INPUT_ALLOWED)
+@InputRequirement(Requirement.INPUT_REQUIRED)
 public class GetNuxeoBlob extends AbstractNuxeoProcessor {
 
     public static final PropertyDescriptor XPATH = new PropertyDescriptor.Builder().name("XPATH")

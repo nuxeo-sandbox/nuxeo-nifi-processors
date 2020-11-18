@@ -6,6 +6,7 @@ import java.util.List;
 
 import org.apache.nifi.annotation.documentation.CapabilityDescription;
 import org.apache.nifi.annotation.documentation.Tags;
+import org.apache.nifi.annotation.lifecycle.OnDisabled;
 import org.apache.nifi.annotation.lifecycle.OnEnabled;
 import org.apache.nifi.components.AllowableValue;
 import org.apache.nifi.components.PropertyDescriptor;
@@ -120,6 +121,8 @@ public class NuxeoClientServiceImpl extends AbstractControllerService implements
 
     private String credentials;
 
+    private NuxeoClient client;
+
     @Override
     protected List<PropertyDescriptor> getSupportedPropertyDescriptors() {
         return serviceProperties;
@@ -144,13 +147,18 @@ public class NuxeoClientServiceImpl extends AbstractControllerService implements
 
         try {
             // Test client build
-            getClient();
+            this.client = buildClient();
         } catch (Exception ex) {
             throw new InitializationException(ex);
         }
     }
 
-    public NuxeoClient getClient() {
+    @OnDisabled
+    public void disableClient() {
+        this.client = null;
+    }
+
+    protected synchronized NuxeoClient buildClient() {
         Interceptor auth = null;
         switch (authType) {
         case TOKEN:
@@ -171,9 +179,18 @@ public class NuxeoClientServiceImpl extends AbstractControllerService implements
                                                       // Authenticate
                                                       .authentication(auth)
                                                       // Connect
-                                                      .connect();
+                                                      .build();
         // Ship it
         return client;
+    }
+
+    public NuxeoClient getClient() {
+        if (this.client != null) {
+            return this.client;
+        }
+        synchronized (this) {
+            return this.client = buildClient();
+        }
     }
 
     public String getDefaultRepository() {

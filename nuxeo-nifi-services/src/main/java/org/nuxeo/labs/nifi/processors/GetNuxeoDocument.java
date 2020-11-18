@@ -54,7 +54,7 @@ import org.nuxeo.client.spi.NuxeoClientException;
         @WritesAttribute(attribute = NuxeoAttributes.VAR_DOC_ID, description = "Nuxeo document ID"),
         @WritesAttribute(attribute = NuxeoAttributes.VAR_ENTITY_TYPE, description = "Entity type of content retrieved"),
         @WritesAttribute(attribute = NuxeoAttributes.VAR_ERROR, description = "Error set if problem occurs") })
-@InputRequirement(Requirement.INPUT_ALLOWED)
+@InputRequirement(Requirement.INPUT_REQUIRED)
 public class GetNuxeoDocument extends AbstractNuxeoProcessor {
 
     @Override

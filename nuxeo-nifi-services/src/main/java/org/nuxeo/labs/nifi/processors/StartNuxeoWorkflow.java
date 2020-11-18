@@ -54,7 +54,7 @@ import org.nuxeo.client.spi.NuxeoClientException;
 @WritesAttributes({
         @WritesAttribute(attribute = "nx-workflow-id", description = "ID of workflow that has been started."),
         @WritesAttribute(attribute = NuxeoAttributes.VAR_ERROR, description = "Error set if problem occurs") })
-@InputRequirement(Requirement.INPUT_ALLOWED)
+@InputRequirement(Requirement.INPUT_REQUIRED)
 public class StartNuxeoWorkflow extends AbstractNuxeoProcessor {
 
     public static final PropertyDescriptor WORKFLOW = new PropertyDescriptor.Builder().name("WORKFLOW")
