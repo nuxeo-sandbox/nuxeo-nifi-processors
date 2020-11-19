@@ -78,7 +78,7 @@ public class ExecuteNuxeoPageProvider extends AbstractNuxeoProcessor {
                                                                                        .description(
                                                                                                "Page size to retrieve. {nx-page-size}")
                                                                                        .expressionLanguageSupported(
-                                                                                               ExpressionLanguageScope.NONE)
+                                                                                               ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
                                                                                        .defaultValue("10")
                                                                                        .required(false)
                                                                                        .addValidator(
@@ -90,7 +90,7 @@ public class ExecuteNuxeoPageProvider extends AbstractNuxeoProcessor {
                                                                                         .description(
                                                                                                 "Result page index. {nx-page-index}")
                                                                                         .expressionLanguageSupported(
-                                                                                                ExpressionLanguageScope.NONE)
+                                                                                                ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
                                                                                         .defaultValue("0")
                                                                                         .required(false)
                                                                                         .addValidator(
@@ -102,7 +102,7 @@ public class ExecuteNuxeoPageProvider extends AbstractNuxeoProcessor {
                                                                                          .description(
                                                                                                  "Max results to return. {nx-max-results}")
                                                                                          .expressionLanguageSupported(
-                                                                                                 ExpressionLanguageScope.NONE)
+                                                                                                 ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
                                                                                          .defaultValue("1000")
                                                                                          .required(false)
                                                                                          .addValidator(
@@ -114,7 +114,7 @@ public class ExecuteNuxeoPageProvider extends AbstractNuxeoProcessor {
                                                                                      .description(
                                                                                              "Sort by field. {nx-sort-by}")
                                                                                      .expressionLanguageSupported(
-                                                                                             ExpressionLanguageScope.NONE)
+                                                                                             ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
                                                                                      .required(false)
                                                                                      .addValidator(Validator.VALID)
                                                                                      .build();
@@ -124,7 +124,7 @@ public class ExecuteNuxeoPageProvider extends AbstractNuxeoProcessor {
                                                                                         .description(
                                                                                                 "Sort order to use (ASC, DESC). {nx-sort-order}")
                                                                                         .expressionLanguageSupported(
-                                                                                                ExpressionLanguageScope.NONE)
+                                                                                                ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
                                                                                         .required(false)
                                                                                         .addValidator(Validator.VALID)
                                                                                         .build();
@@ -135,7 +135,7 @@ public class ExecuteNuxeoPageProvider extends AbstractNuxeoProcessor {
                                                                                           .description(
                                                                                                   "Query parameters to use. {nx-query-params}")
                                                                                           .expressionLanguageSupported(
-                                                                                                  ExpressionLanguageScope.NONE)
+                                                                                                  ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
                                                                                           .required(false)
                                                                                           .addValidator(Validator.VALID)
                                                                                           .build();
@@ -241,8 +241,8 @@ public class ExecuteNuxeoPageProvider extends AbstractNuxeoProcessor {
                 try (OutputStream out = session.write(childFlow)) {
                     IOUtils.write(json, out, UTF8);
                 } catch (IOException e) {
-                    session.putAttribute(flowFile, VAR_ERROR, e.getMessage());
-                    session.transfer(flowFile, REL_FAILURE);
+                    session.putAttribute(childFlow, VAR_ERROR, e.getMessage());
+                    session.transfer(childFlow, REL_FAILURE);
                     continue;
                 }
 
