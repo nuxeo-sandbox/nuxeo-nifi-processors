@@ -150,7 +150,7 @@ public class UploadNuxeoBlob extends AbstractNuxeoProcessor {
 
             // Write to repository
             try (InputStream in = session.read(flowFile)) {
-                StreamBlob stream = new StreamBlob(in, filename);
+                StreamBlob stream = new StreamBlob(in, filename, flowFile.getSize());
                 batch.upload(index, stream);
             } catch (IOException e) {
                 session.putAttribute(blobFile, VAR_ERROR, e.getMessage());
