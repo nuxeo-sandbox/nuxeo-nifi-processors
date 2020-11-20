@@ -153,8 +153,8 @@ public class UploadNuxeoBlob extends AbstractNuxeoProcessor {
                 StreamBlob stream = new StreamBlob(in, filename);
                 batch.upload(index, stream);
             } catch (IOException e) {
-                session.putAttribute(flowFile, VAR_ERROR, e.getMessage());
-                session.transfer(flowFile, REL_FAILURE);
+                session.putAttribute(blobFile, VAR_ERROR, e.getMessage());
+                session.transfer(blobFile, REL_FAILURE);
                 return;
             }
             if (filename != null) {
@@ -165,13 +165,10 @@ public class UploadNuxeoBlob extends AbstractNuxeoProcessor {
             session.putAttribute(blobFile, VAR_INDEX, index);
             session.transfer(blobFile, REL_SUCCESS);
         } catch (NuxeoClientException nce) {
-            session.remove(blobFile);
-
             getLogger().error("Unable to upload blob", nce);
-            session.putAttribute(flowFile, VAR_ERROR, String.valueOf(nce));
-            session.transfer(flowFile, REL_FAILURE);
-        } finally {
-            session.transfer(flowFile, REL_ORIGINAL);
+            session.putAttribute(blobFile, VAR_ERROR, nce.getMessage());
+            session.transfer(blobFile, REL_FAILURE);
         }
+        session.transfer(flowFile, REL_ORIGINAL);
     }
 }

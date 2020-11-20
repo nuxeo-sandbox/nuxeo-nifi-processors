@@ -129,12 +129,10 @@ public class GetNuxeoBlob extends AbstractNuxeoProcessor {
 
             session.transfer(blobFile, REL_SUCCESS);
         } catch (NuxeoClientException nce) {
-            session.remove(blobFile);
             getLogger().error("Unable to retrieve blob", nce);
-            session.putAttribute(flowFile, VAR_ERROR, String.valueOf(nce));
-            session.transfer(flowFile, REL_FAILURE);
-        } finally {
-            session.transfer(flowFile, REL_ORIGINAL);
+            session.putAttribute(blobFile, VAR_ERROR, nce.getMessage());
+            session.transfer(blobFile, REL_FAILURE);
         }
+        session.transfer(flowFile, REL_ORIGINAL);
     }
 }

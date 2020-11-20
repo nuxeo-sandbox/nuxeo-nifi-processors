@@ -120,10 +120,10 @@ public class GetNuxeoChildren extends AbstractNuxeoProcessor {
             if (flowFile == null) {
                 flowFile = session.create();
             }
-            session.putAttribute(flowFile, VAR_ERROR, nce.getMessage());
-            session.transfer(flowFile, REL_FAILURE);
+            FlowFile err = session.create(flowFile);
+            session.putAttribute(err, VAR_ERROR, nce.getMessage());
+            session.transfer(err, REL_FAILURE);
         }
-
         session.transfer(flowFile, REL_ORIGINAL);
     }
 }

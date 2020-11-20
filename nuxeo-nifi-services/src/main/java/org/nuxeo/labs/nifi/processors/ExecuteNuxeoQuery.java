@@ -250,9 +250,9 @@ public class ExecuteNuxeoQuery extends AbstractNuxeoProcessor {
             }
         } catch (NuxeoClientException nce) {
             getLogger().error("Unable to query repository: " + query, nce);
-            session.putAttribute(flowFile, VAR_ERROR, nce.getMessage());
-            session.transfer(flowFile, REL_FAILURE);
-            return;
+            FlowFile err = session.create(flowFile);
+            session.putAttribute(err, VAR_ERROR, nce.getMessage());
+            session.transfer(err, REL_FAILURE);
         }
         session.transfer(flowFile, REL_ORIGINAL);
     }
