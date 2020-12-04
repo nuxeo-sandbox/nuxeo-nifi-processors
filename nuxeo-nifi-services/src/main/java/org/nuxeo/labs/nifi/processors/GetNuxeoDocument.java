@@ -89,7 +89,7 @@ public class GetNuxeoDocument extends AbstractNuxeoProcessor {
             session.putAttribute(flowFile, VAR_DOC_ID, doc.getId());
 
             // Convert and write to JSON
-            String json = this.nuxeoClient.getConverterFactory().writeJSON(doc);
+            String json = nxClient().getConverterFactory().writeJSON(doc);
             try (OutputStream out = session.write(flowFile)) {
                 IOUtils.write(json, out, UTF8);
             } catch (IOException e) {

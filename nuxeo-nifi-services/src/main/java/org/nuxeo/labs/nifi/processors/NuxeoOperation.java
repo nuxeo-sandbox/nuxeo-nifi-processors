@@ -39,7 +39,6 @@ import org.apache.nifi.processor.ProcessSession;
 import org.apache.nifi.processor.ProcessorInitializationContext;
 import org.apache.nifi.processor.Relationship;
 import org.apache.nifi.processor.exception.ProcessException;
-import org.nuxeo.client.NuxeoClient;
 import org.nuxeo.client.objects.Operation;
 
 @Tags({ "nuxeo", "operation", "execution" })
@@ -85,8 +84,7 @@ public class NuxeoOperation extends AbstractNuxeoOperationProcessor {
         String opId = getArg(context, flowFile, VAR_OPERATION, OPERATION_ID);
 
         try {
-            NuxeoClient client = getClient(context);
-            Operation op = client.operation(opId);
+            Operation op = nxClient().operation(opId);
             enrichOperation(context, flowFile, op);
             executeOperation(context, session, flowFile, op);
             if (flowFile != null) {

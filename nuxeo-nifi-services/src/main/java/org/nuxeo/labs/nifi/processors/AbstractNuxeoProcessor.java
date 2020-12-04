@@ -139,18 +139,16 @@ public abstract class AbstractNuxeoProcessor extends AbstractProcessor implement
 
     protected NuxeoClientService nuxeoClientService;
 
-    protected NuxeoClient nuxeoClient;
-
     protected List<PropertyDescriptor> descriptors;
 
     protected Set<Relationship> relationships;
 
     private ObjectMapper objectMapper;
 
-    protected NuxeoClient getClient(final ProcessContext context) {
-        this.nuxeoClientService = context.getProperty(NUXEO_CLIENT_SERVICE)
-                                         .asControllerService(NuxeoClientService.class);
-        return this.nuxeoClientService.getClient();
+    private ThreadLocal<NuxeoClient> clientHolder = null;
+    
+    protected final NuxeoClient nxClient() {
+        return this.clientHolder.get();
     }
 
     /**
@@ -173,7 +171,7 @@ public abstract class AbstractNuxeoProcessor extends AbstractProcessor implement
             schemas = context.getProperty(FILTER_SCHEMAS).getValue();
         }
 
-        NuxeoClient client = this.nuxeoClient.schemas(schemas);
+        NuxeoClient client = nxClient().schemas(schemas);
         if (repo == null) {
             return client.repository();
         } else {
@@ -201,10 +199,10 @@ public abstract class AbstractNuxeoProcessor extends AbstractProcessor implement
 
     @OnScheduled
     public void onScheduled(final ProcessContext context) {
-        if (this.nuxeoClient != null) {
-            onStopped(context);
-        }
-        this.nuxeoClient = getClient(context);
+        onStopped(context);
+        this.nuxeoClientService = context.getProperty(NUXEO_CLIENT_SERVICE)
+                                         .asControllerService(NuxeoClientService.class);
+        this.clientHolder = ThreadLocal.withInitial(this.nuxeoClientService::buildClient);
         processorScheduled(context);
     }
 
@@ -212,10 +210,7 @@ public abstract class AbstractNuxeoProcessor extends AbstractProcessor implement
     public void onStopped(final ProcessContext context) {
         processorStopped(context);
 
-        if (this.nuxeoClient != null) {
-            this.nuxeoClient.disconnect();
-        }
-        this.nuxeoClient = null;
+        this.clientHolder = null;
         this.nuxeoClientService = null;
         this.objectMapper = null;
     }

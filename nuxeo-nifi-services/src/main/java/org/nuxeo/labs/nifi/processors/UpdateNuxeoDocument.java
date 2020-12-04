@@ -86,8 +86,8 @@ public class UpdateNuxeoDocument extends AbstractNuxeoDynamicProcessor {
             if (EntityTypes.DOCUMENT.equals(entityType)) {
                 try (InputStream in = session.read(flowFile)) {
                     String json = IOUtils.toString(in, UTF8);
-                    doc = this.nuxeoClient.getConverterFactory().readJSON(json, Document.class);
-                    doc.reconnectWith(this.nuxeoClient);
+                    doc = nxClient().getConverterFactory().readJSON(json, Document.class);
+                    doc.reconnectWith(nxClient());
                 } catch (Exception iox) {
                     getLogger().warn("Unable to load document from existing resource", iox);
                 }

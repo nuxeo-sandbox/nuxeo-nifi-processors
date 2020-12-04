@@ -108,7 +108,7 @@ public class DeleteNuxeoDocument extends AbstractNuxeoProcessor {
                 session.putAttribute(flowFile, "nx-trashed", "true");
 
                 // Convert and write to JSON
-                String json = this.nuxeoClient.getConverterFactory().writeJSON(doc);
+                String json = nxClient().getConverterFactory().writeJSON(doc);
                 try (OutputStream out = session.write(flowFile)) {
                     IOUtils.write(json, out, UTF8);
                 } catch (IOException e) {

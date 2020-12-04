@@ -91,7 +91,7 @@ public class NuxeoBlobOperation extends AbstractNuxeoOperationProcessor {
         }
 
         try {
-            Operation op = getClient(context).operation(opId);
+            Operation op = nxClient().operation(opId);
             try (InputStream in = session.read(flowFile)) {
                 op.input(new StreamBlob(in, filename));
                 enrichOperation(context, flowFile, op);

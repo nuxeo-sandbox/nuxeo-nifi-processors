@@ -88,7 +88,7 @@ public class GetNuxeoWorkflows extends AbstractNuxeoProcessor {
                 session.putAttribute(childFlow, "nx-workflow-id", wf.getId());
 
                 // Convert and write to JSON
-                String json = this.nuxeoClient.getConverterFactory().writeJSON(wf);
+                String json = nxClient().getConverterFactory().writeJSON(wf);
                 try (OutputStream out = session.write(childFlow)) {
                     IOUtils.write(json, out, UTF8);
                 } catch (IOException e) {

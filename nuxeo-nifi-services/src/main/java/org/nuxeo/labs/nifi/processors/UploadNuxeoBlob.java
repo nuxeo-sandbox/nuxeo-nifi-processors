@@ -130,7 +130,7 @@ public class UploadNuxeoBlob extends AbstractNuxeoProcessor {
         FlowFile blobFile = session.create(flowFile);
         try {
             // Invoke document operation
-            BatchUploadManager upload = this.nuxeoClient.batchUploadManager();
+            BatchUploadManager upload = nxClient().batchUploadManager();
             BatchUpload batch = null;
             if (batchRef != null) {
                 batch = upload.getBatch(batchRef);

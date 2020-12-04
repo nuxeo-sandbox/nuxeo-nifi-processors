@@ -105,7 +105,7 @@ public class GetNuxeoChildren extends AbstractNuxeoProcessor {
                 session.putAttribute(childFlow, VAR_DOC_ID, doc.getId());
 
                 // Convert and write to JSON
-                String json = this.nuxeoClient.getConverterFactory().writeJSON(doc);
+                String json = nxClient().getConverterFactory().writeJSON(doc);
                 try (OutputStream out = session.write(childFlow)) {
                     IOUtils.write(json, out, UTF8);
                 } catch (IOException e) {

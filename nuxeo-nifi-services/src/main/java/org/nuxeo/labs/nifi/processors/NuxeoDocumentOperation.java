@@ -89,7 +89,7 @@ public class NuxeoDocumentOperation extends AbstractNuxeoOperationProcessor {
 
         try {
             Document doc = getDocument(context, flowFile);
-            Operation op = getClient(context).operation(opId);
+            Operation op = nxClient().operation(opId);
             op.input(new DocRef(doc.getId()));
             enrichOperation(context, flowFile, op);
             executeOperation(context, session, flowFile, op);

@@ -94,7 +94,7 @@ public class GetNuxeoDocumentAudit extends AbstractNuxeoProcessor {
             session.putAttribute(flowFile, VAR_DOC_ID, doc.getId());
 
             // Convert and write to JSON
-            String json = this.nuxeoClient.getConverterFactory().writeJSON(audit);
+            String json = nxClient().getConverterFactory().writeJSON(audit);
             try (OutputStream out = session.write(flowFile)) {
                 IOUtils.write(json, out, UTF8);
             } catch (IOException e) {

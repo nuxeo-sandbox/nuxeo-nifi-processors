@@ -15,7 +15,7 @@ public interface NuxeoClientService extends ControllerService {
      * 
      * @return the {@link NuxeoClient}
      */
-    NuxeoClient getClient();
+    NuxeoClient buildClient();
 
     /**
      * Retrieve the configured default Nuxeo repository, if configured
