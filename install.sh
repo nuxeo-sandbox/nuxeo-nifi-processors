@@ -19,6 +19,6 @@ then
   cp -vf nuxeo-nifi-*-nar/target/*.nar "${NIFI_HOME}/lib"
   echo "Done."
 else
-  echo "Please build project before attempting install `mvn clean install`"
+  echo "Please build project before attempting install 'mvn clean install'"
   exit 1
 fi

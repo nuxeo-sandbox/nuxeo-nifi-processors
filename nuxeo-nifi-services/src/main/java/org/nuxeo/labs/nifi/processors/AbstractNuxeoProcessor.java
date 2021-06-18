@@ -190,11 +190,11 @@ public abstract class AbstractNuxeoProcessor extends AbstractProcessor implement
     }
 
     protected void processorScheduled(final ProcessContext context) {
-        // no-op
+        // no-op extension point
     }
 
     protected void processorStopped(final ProcessContext context) {
-        // no-op
+        // no-op extension point
     }
 
     @OnScheduled

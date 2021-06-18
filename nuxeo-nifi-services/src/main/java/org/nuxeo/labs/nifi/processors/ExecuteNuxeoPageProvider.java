@@ -133,7 +133,7 @@ public class ExecuteNuxeoPageProvider extends AbstractNuxeoProcessor {
                                                                                           .displayName(
                                                                                                   "Query Parameters")
                                                                                           .description(
-                                                                                                  "Query parameters to use. {nx-query-params}")
+                                                                                                  "Query parameters to use, separated by commas. {nx-query-params}")
                                                                                           .expressionLanguageSupported(
                                                                                                   ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
                                                                                           .required(false)
@@ -183,12 +183,18 @@ public class ExecuteNuxeoPageProvider extends AbstractNuxeoProcessor {
         String sortBy = getArg(context, flowFile, "nx-sort-by", SORT_BY);
         String sortOrder = getArg(context, flowFile, "nx-sort-order", SORT_ORDER);
         String queryParams = getArg(context, flowFile, "nx-query-params", QUERY_PARAMS);
+        String[] params = null;
+        if (queryParams != null) {
+          params = queryParams.split(",");
+        } else {
+          params = new String[0];
+        }
 
         // Evaluate target path
         try {
             // Invoke document query operation
             Documents docs = getRepository(context, flowFile).queryByProvider(providerName, pageSize, currentPageIndex,
-                    maxResults, sortBy, sortOrder, queryParams);
+                    maxResults, sortBy, sortOrder, params);
 
             // Check errors...
             if (docs.hasError()) {
